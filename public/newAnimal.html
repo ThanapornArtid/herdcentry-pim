@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HerdSentry - Add New Animal</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply focus ring color globally */
+        input:focus, select:focus, textarea:focus {
+            --tw-ring-color: #3b82f6; /* blue-500 */
+        }
+        /* Ensure the body font is Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+<div class="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+    <div class="flex items-center justify-center mb-6">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-10 w-auto mr-2">
+        <h2 class="text-3xl font-bold text-gray-800">
+            Add New Animal
+        </h2>
+    </div>
+    
+    <!-- Area for success/error messages -->
+    <div id="messageContainer" class="mb-4 hidden rounded-lg p-3 text-sm font-medium"></div>
+
+    <form id="addAnimalForm" action="/api/animals" method="POST">
+
+        <!-- Section 1: Core Animal Details -->
+        <div class="space-y-6">
+
+            <!-- Animal Name / Tag ID -->
+            <div>
+                <label for="animal_name" class="block text-sm font-medium text-gray-700">
+                    Animal Name / Tag ID <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="animal_name" name="animal_name" required maxlength="100" 
+                       placeholder="e.g., T-Rex 42 or Big Bessie"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <!-- Date of Birth -->
+            <div>
+                <label for="birth_date" class="block text-sm font-medium text-gray-700">
+                    Date of Birth
+                </label>
+                <input type="date" id="birth_date" name="birth_date"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <!-- Weight (kg) -->
+            <div>
+                <label for="weight_kg" class="block text-sm font-medium text-gray-700">
+                    Weight (kg) <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="weight_kg" name="weight_kg" required step="0.01" min="0.01" max="9999.99"
+                       placeholder="Enter weight in kilograms"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            
+            <!-- Gender (ENUM Field - Radio Group) -->
+            <fieldset>
+                <legend class="block text-sm font-medium text-gray-700 mb-2">
+                    Gender <span class="text-red-500">*</span>
+                </legend>
+                <div class="flex flex-wrap gap-4">
+                    
+                    <div class="flex items-center">
+                        <input id="gender_male" name="gender" type="radio" value="Male" required
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_male" class="ml-2 block text-sm font-medium text-gray-700">
+                            Male
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="gender_female" name="gender" type="radio" value="Female"
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_female" class="ml-2 block text-sm font-medium text-gray-700">
+                            Female
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="gender_unknown" name="gender" type="radio" value="Unknown"
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_unknown" class="ml-2 block text-sm font-medium text-gray-700">
+                            Unknown
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-gray-200 space-y-6">
+
+            <!-- Species (Foreign Key Lookup) -->
+            <div>
+                <div class="flex justify-between items-center">
+                    <label for="species_id" class="block text-sm font-medium text-gray-700">
+                        Species <span class="text-red-500">*</span>
+                    </label>
+                    <!-- Button to toggle the new species area -->
+                    <button type="button" id="toggleNewSpeciesBtn" class="text-sm text-blue-600 hover:text-blue-800 font-semibold transition duration-150 ease-in-out">
+                        + Add New
+                    </button>
+                </div>
+                
+                <select id="species_id" name="species_id" required
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
+                    <option value="" disabled selected>Loading Species...</option>
+                </select>
+            </div>
+
+            <!-- Dynamic New Species Input Area -->
+            <div id="newSpeciesArea" class="hidden mt-4 p-4 border border-blue-200 bg-blue-50 rounded-lg space-y-4">
+                <h3 class="text-md font-bold text-blue-700">Define New Species</h3>
+                
+                <div>
+                    <label for="new_species_name" class="block text-sm font-medium text-gray-700">
+                        New Species Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="new_species_name" name="new_species_name" 
+                           placeholder="e.g., Alpaca"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="base_notes" class="block text-sm font-medium text-gray-700">
+                        Base Notes (Characteristics)
+                    </label>
+                    <textarea id="base_notes" name="base_notes" rows="2" maxlength="500"
+                              placeholder="e.g., Fiber producer, sensitive to humidity, requires specific mineral supplementation."
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                </div>
+            </div>
+            
+            <!-- Current Diet (Foreign Key Lookup) -->
+            <div>
+                <div class="flex justify-between items-center">
+                    <label for="current_diet_id" class="block text-sm font-medium text-gray-700">
+                        Current Diet (Optional)
+                    </label>
+                    <!-- Button to toggle the new diet area -->
+                    <button type="button" id="toggleNewDietBtn" class="text-sm text-blue-600 hover:text-blue-800 font-semibold transition duration-150 ease-in-out">
+                        + Define New
+                    </button>
+                </div>
+                
+                <select id="current_diet_id" name="current_diet_id"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
+                    <option value="">Loading Diets...</option>
+                </select>
+            </div>
+
+             <!-- Dynamic New Diet Input Area -->
+            <div id="newDietArea" class="hidden mt-4 p-4 border border-indigo-200 bg-indigo-50 rounded-lg space-y-4">
+                <h3 class="text-md font-bold text-indigo-700 mb-4">Define New Diet</h3>
+
+                <div>
+                    <label for="new_diet_name" class="block text-sm font-medium text-gray-700">
+                        New Diet Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="new_diet_name" name="new_diet_name" 
+                           placeholder="e.g., High-Protein Lactation Mix"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <!-- Total Ration Size -->
+                    <div>
+                        <label for="total_ration_size_kg" class="block text-sm font-medium text-gray-700">
+                            Total Ration (kg) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="total_ration_size_kg" name="total_ration_size_kg" step="0.01" min="0.01"
+                               placeholder="1.00"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                     <!-- Ration Size -->
+                    <div>
+                        <label for="ration_size_kg" class="block text-sm font-medium text-gray-700">
+                            Single Serving (kg) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="ration_size_kg" name="ration_size_kg" step="0.01" min="0.01"
+                               placeholder="0.50"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                     <!-- Feeding Frequency -->
+                    <div>
+                        <label for="feeding_frequency" class="block text-sm font-medium text-gray-700">
+                            Frequency (x/day) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="feeding_frequency" name="feeding_frequency" min="1"
+                               placeholder="2"
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                </div>
+                
+                <!-- Diet Components (Dynamic Section) -->
+                <div class="pt-4 border-t border-indigo-300">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-700">Diet Components (Must total 100%)</h4>
+                        <span id="percentageTotal" class="text-md font-bold text-red-600">Total: 0%</span>
+                    </div>
+                    
+                    <!-- Button to toggle the new feed item form -->
+                    <button type="button" id="toggleNewFeedItemBtn" class="mb-3 text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition duration-150 ease-in-out">
+                        + Define New Feed Item
+                    </button>
+
+                    <!-- Dynamic New Feed Item Input Area (UPDATED) -->
+                    <div id="newFeedItemArea" class="hidden p-3 mb-3 border border-gray-300 bg-white rounded-lg space-y-3">
+                        <h4 class="text-sm font-bold text-gray-700">New Feed Item Details</h4>
+
+                        <!-- Name and Manufacturer -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="feed_name" class="block text-xs font-medium text-gray-600">Name <span class="text-red-500">*</span></label>
+                                <input type="text" id="feed_name" name="feed_name_temp" maxlength="100" 
+                                       placeholder="e.g., Alfalfa Hay Premium"
+                                       class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="manufacturer" class="block text-xs font-medium text-gray-600">Manufacturer</label>
+                                <input type="text" id="manufacturer" name="manufacturer_temp" maxlength="100"
+                                       placeholder="e.g., Agribrands Co."
+                                       class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        
+                        <!-- Cost -->
+                        <div>
+                            <label for="cost_per_kg" class="block text-xs font-medium text-gray-600">Cost/kg ($) <span class="text-red-500">*</span></label>
+                            <input type="number" id="cost_per_kg" name="cost_per_kg_temp" step="0.01" min="0" max="9999.99"
+                                   placeholder="0.50"
+                                   class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <!-- Nutritional Values Section -->
+                        <div class="pt-2 border-t border-gray-200">
+                            <h5 class="text-xs font-bold text-gray-700 mb-2">Nutritional Breakdown (Optional)</h5>
+                            <div class="grid grid-cols-3 gap-3">
+                                <!-- Calories per kg -->
+                                <div>
+                                    <label for="calories_per_kg" class="block text-xs font-medium text-gray-600">Calories/kg</label>
+                                    <input type="number" id="calories_per_kg" name="calories_per_kg_temp" step="0.01" min="0" max="999999.99"
+                                           placeholder="2500"
+                                           class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <!-- Protein % -->
+                                <div>
+                                    <label for="protein_percentage" class="block text-xs font-medium text-gray-600">Protein (%)</label>
+                                    <input type="number" id="protein_percentage" name="protein_percentage_temp" step="0.01" min="0" max="100"
+                                           placeholder="15.00"
+                                           class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                 <!-- Fat % -->
+                                <div>
+                                    <label for="fat_percentage" class="block text-xs font-medium text-gray-600">Fat (%)</label>
+                                    <input type="number" id="fat_percentage" name="fat_percentage_temp" step="0.01" min="0" max="100"
+                                           placeholder="3.50"
+                                           class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 mt-3">
+                                <!-- Fiber % -->
+                                <div>
+                                    <label for="fiber_percentage" class="block text-xs font-medium text-gray-600">Fiber (%)</label>
+                                    <input type="number" id="fiber_percentage" name="fiber_percentage_temp" step="0.01" min="0" max="100"
+                                           placeholder="20.00"
+                                           class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <!-- Calcium mg/kg -->
+                                <div class="col-span-2">
+                                    <label for="calcium_mg_per_kg" class="block text-xs font-medium text-gray-600">Calcium (mg/kg)</label>
+                                    <input type="number" id="calcium_mg_per_kg" name="calcium_mg_per_kg_temp" step="0.01" min="0" max="99999999.99"
+                                           placeholder="1200.00"
+                                           class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submission Button -->
+                        <button type="button" id="submitFeedItemBtn"
+                                onclick="submitNewFeedItem(event)"
+                                class="w-full justify-center rounded-lg border border-transparent bg-indigo-600 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition duration-150 mt-3">
+                            Create Feed Item & Use
+                        </button>
+                    </div>
+
+                    <div id="dietComponentContainer" class="space-y-3">
+                        <!-- Component rows will be dynamically added here -->
+                    </div>
+
+                    <button type="button" id="addComponentBtn" class="mt-3 w-full rounded-lg border border-indigo-500 bg-indigo-50 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition duration-150 ease-in-out">
+                        + Add Feed Item Row
+                    </button>
+                </div>
+
+                <div>
+                    <label for="diet_notes" class="block text-sm font-medium text-gray-700">
+                        Diet Notes
+                    </label>
+                    <textarea id="diet_notes" name="diet_notes" rows="2"
+                              placeholder="Notes on ingredients or specific feeding conditions."
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Submission Button -->
+        <div class="pt-5">
+            <button type="submit" id="submitButton"
+                    class="w-full justify-center rounded-lg border border-transparent bg-green-600 py-3 px-4 text-lg font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                Save Animal
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial data fetches
+    fetchSpeciesAndPopulate();
+    fetchDietsAndPopulate();
+    fetchFeedItemsAndPopulate(); 
+    
+    // Setup listeners
+    document.getElementById('addAnimalForm').addEventListener('submit', handleFormSubmit);
+    document.getElementById('toggleNewSpeciesBtn').addEventListener('click', toggleNewSpeciesInput);
+    document.getElementById('toggleNewDietBtn').addEventListener('click', toggleNewDietInput);
+    document.getElementById('addComponentBtn').addEventListener('click', () => addDietComponentRow());
+    document.getElementById('toggleNewFeedItemBtn').addEventListener('click', toggleNewFeedItemInput); 
+
+    // Initial component row
+    addDietComponentRow();
+});
+
+// State variables
+let isNewSpeciesVisible = false;
+let isNewDietVisible = false;
+let isNewFeedItemVisible = false; 
+let allFeedItems = []; 
+const componentContainer = document.getElementById('dietComponentContainer');
+const percentageTotalSpan = document.getElementById('percentageTotal');
+
+
+// =========================================================
+// NEW: FEED ITEM MANAGEMENT LOGIC
+// =========================================================
+
+function toggleNewFeedItemInput() {
+    const area = document.getElementById('newFeedItemArea');
+    const toggleBtn = document.getElementById('toggleNewFeedItemBtn');
+    
+    // Select all temporary inputs within the feed item details area
+    const feedInputs = area.querySelectorAll('input[name$="_temp"]');
+
+    isNewFeedItemVisible = !isNewFeedItemVisible;
+
+    if (isNewFeedItemVisible) {
+        area.classList.remove('hidden');
+        toggleBtn.textContent = 'Cancel New Feed Item';
+        // Enable inputs when visible
+        feedInputs.forEach(input => input.disabled = false);
+    } else {
+        area.classList.add('hidden');
+        toggleBtn.textContent = '+ Define New Feed Item';
+
+        // Disable and clear inputs when hidden
+        feedInputs.forEach(input => {
+            input.disabled = true;
+            input.value = '';
+        });
+    }
+}
+
+async function submitNewFeedItem(event) {
+    
+    // Manually fetch elements as they are now children of the main form
+    const feedNameInput = document.getElementById('feed_name');
+    const costInput = document.getElementById('cost_per_kg');
+    
+    // NEW ELEMENTS
+    const manufacturerInput = document.getElementById('manufacturer');
+    const caloriesInput = document.getElementById('calories_per_kg');
+    const proteinInput = document.getElementById('protein_percentage');
+    const fatInput = document.getElementById('fat_percentage');
+    const fiberInput = document.getElementById('fiber_percentage');
+    const calciumInput = document.getElementById('calcium_mg_per_kg');
+    
+    const submitBtn = document.getElementById('submitFeedItemBtn');
+    
+    // --- Manual Validation (since 'required' is removed) ---
+    if (feedNameInput.value.trim() === '') {
+        displayMessage('Feed Item Name is required.', false);
+        return;
+    }
+    if (costInput.value.trim() === '') {
+        displayMessage('Cost per kg is required.', false);
+        return;
+    }
+    // --- End Manual Validation ---
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+    
+    // Prepare data for API, converting empty strings to null or numbers
+    const data = {
+        feed_name: feedNameInput.value.trim(),
+        cost_per_kg: parseFloat(costInput.value), 
+        
+        manufacturer: manufacturerInput.value.trim() || null,
+        calories_per_kg: caloriesInput.value.trim() ? parseFloat(caloriesInput.value) : null,
+        protein_percentage: proteinInput.value.trim() ? parseFloat(proteinInput.value) : null,
+        fat_percentage: fatInput.value.trim() ? parseFloat(fatInput.value) : null,
+        fiber_percentage: fiberInput.value.trim() ? parseFloat(fiberInput.value) : null,
+        calcium_mg_per_kg: calciumInput.value.trim() ? parseFloat(calciumInput.value) : null,
+    };
+
+    const result = await addNewFeedItem(data);
+    
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Feed Item & Use';
+
+    if (result.success) {
+        displayMessage(`Feed Item '${result.feed_name}' created and added to list!`, true);
+        
+        // 1. Update global state
+        // Use String() wrapper for safety
+        allFeedItems.push({ 
+            feed_id: String(result.feed_id), 
+            feed_name: result.feed_name 
+        });
+        
+        // 2. Clear the fields and hide the new area
+        toggleNewFeedItemInput(); 
+        
+        // 3. Re-render all select elements to include the new item
+        componentContainer.querySelectorAll('select').forEach(select => {
+            populateSelectElement(select, allFeedItems, 'Select Feed Item...', 'feed_id', 'feed_name');
+        });
+
+        // 4. Add a new component row and pre-select the new item
+        addDietComponentRow(String(result.feed_id), '0.00'); 
+    } else {
+        // This path handles the 409 Conflict gracefully
+        displayMessage(`Failed to create feed item: ${result.message}`, false);
+    }
+}
+
+async function addNewFeedItem(feedData) {
+    const apiEndpoint = '/api/feeditems/add';
+    
+    try {
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(feedData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Defensive check: Ensure insertId exists before claiming success
+            if (result.insertId === undefined) {
+                 return { success: false, message: 'Server reported success but did not return the new ID.' };
+            }
+            // Use insertId as feed_id
+            return { success: true, feed_id: result.insertId, feed_name: feedData.feed_name };
+        } else {
+            return { success: false, message: result.message || 'Unknown feed item creation error.' };
+        }
+    } catch (error) {
+        console.error('Error creating new feed item via API:', error);
+        return { success: false, message: 'Network error while creating new feed item.' };
+    }
+}
+
+
+// =========================================================
+// DYNAMIC COMPONENT MANAGEMENT
+// =========================================================
+
+function updatePercentageTotal() {
+    let total = 0;
+    const percentageInputs = componentContainer.querySelectorAll('input[data-component-type="percentage"]');
+    
+    percentageInputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+
+    percentageTotalSpan.textContent = `Total: ${total.toFixed(2)}%`;
+
+    if (Math.abs(total - 100.00) > 0.01) { 
+        percentageTotalSpan.classList.remove('text-green-600');
+        percentageTotalSpan.classList.add('text-red-600');
+    } else {
+        percentageTotalSpan.classList.remove('text-red-600');
+        percentageTotalSpan.classList.add('text-green-600');
+    }
+}
+
+function createFeedItemSelect(selectedValue = '') {
+    const select = document.createElement('select');
+    select.className = 'w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg';
+    select.setAttribute('data-component-type', 'feed_id');
+    select.name = 'component_select_name'; // Added a name for valid HTML
+    // select.required was removed in a previous step.
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select Feed Item...';
+    select.appendChild(defaultOption);
+
+    // Re-populate using the current state of allFeedItems
+    allFeedItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.feed_id;
+        option.textContent = item.feed_name;
+        if (item.feed_id == selectedValue) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+
+    return select;
+}
+
+function addDietComponentRow(initialFeedId = '', initialPercentage = '') {
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 items-center';
+
+    // 1. Feed Item Select (takes 2/3 width)
+    const selectWrapper = document.createElement('div');
+    selectWrapper.className = 'w-2/3';
+    selectWrapper.appendChild(createFeedItemSelect(initialFeedId));
+    row.appendChild(selectWrapper);
+
+    // 2. Percentage Input (takes 1/3 width)
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'flex items-center w-1/3 gap-1';
+
+    const percentageInput = document.createElement('input');
+    percentageInput.type = 'number';
+    percentageInput.name = `component_percentage_${Date.now()}`; // **ADDED UNIQUE NAME**
+    percentageInput.value = initialPercentage || 0;
+    percentageInput.step = '0.01';
+    percentageInput.min = '0';
+    percentageInput.max = '100';
+    percentageInput.placeholder = '0.00';
+    // percentageInput.required = true; // **REMOVED TO FIX BROWSER ERROR**
+    percentageInput.setAttribute('data-component-type', 'percentage');
+    percentageInput.className = 'w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm';
+    percentageInput.addEventListener('input', updatePercentageTotal);
+    
+    inputWrapper.appendChild(percentageInput);
+
+    const percentSymbol = document.createElement('span');
+    percentSymbol.textContent = '%';
+    percentSymbol.className = 'text-gray-700 font-medium';
+    inputWrapper.appendChild(percentSymbol);
+
+    row.appendChild(inputWrapper);
+
+    // 3. Remove Button
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.className = 'text-red-500 hover:text-red-700 p-1 rounded transition duration-150';
+    removeBtn.onclick = () => {
+        row.remove();
+        updatePercentageTotal();
+    };
+    row.appendChild(removeBtn);
+
+    componentContainer.appendChild(row);
+    updatePercentageTotal();
+}
+
+
+// =========================================================
+// TOGGLE FUNCTIONS (Species & Diet)
+// =========================================================
+
+function toggleNewSpeciesInput() {
+    const newSpeciesArea = document.getElementById('newSpeciesArea');
+    const speciesSelect = document.getElementById('species_id');
+    const newSpeciesNameInput = document.getElementById('new_species_name');
+    const toggleBtn = document.getElementById('toggleNewSpeciesBtn');
+    
+    isNewSpeciesVisible = !isNewSpeciesVisible;
+
+    if (isNewSpeciesVisible) {
+        newSpeciesArea.classList.remove('hidden');
+        speciesSelect.classList.add('hidden'); 
+        speciesSelect.required = false;
+        speciesSelect.disabled = true; 
+        newSpeciesNameInput.required = true;
+        toggleBtn.textContent = 'Use Existing List';
+        speciesSelect.value = ''; 
+    } else {
+        newSpeciesArea.classList.add('hidden');
+        speciesSelect.classList.remove('hidden'); 
+        speciesSelect.required = true;
+        speciesSelect.disabled = false; 
+        newSpeciesNameInput.required = false;
+        newSpeciesNameInput.value = ''; 
+        document.getElementById('base_notes').value = '';
+        toggleBtn.textContent = '+ Add New';
+    }
+}
+
+function toggleNewDietInput() {
+    const newDietArea = document.getElementById('newDietArea');
+    const dietSelect = document.getElementById('current_diet_id');
+    const newDietNameInput = document.getElementById('new_diet_name');
+    const toggleBtn = document.getElementById('toggleNewDietBtn');
+
+    isNewDietVisible = !isNewDietVisible;
+
+    if (isNewDietVisible) {
+        newDietArea.classList.remove('hidden');
+        dietSelect.classList.add('hidden'); 
+        dietSelect.disabled = true; 
+        newDietNameInput.required = true;
+        document.getElementById('total_ration_size_kg').required = true;
+        document.getElementById('ration_size_kg').required = true;
+        document.getElementById('feeding_frequency').required = true;
+
+        if (componentContainer.children.length === 0) {
+            addDietComponentRow();
+        }
+        
+        toggleBtn.textContent = 'Use Existing List';
+        dietSelect.value = ''; 
+    } else {
+        newDietArea.classList.add('hidden');
+        dietSelect.classList.remove('hidden'); 
+        dietSelect.disabled = false;
+        newDietNameInput.required = false;
+        document.getElementById('total_ration_size_kg').required = false;
+        document.getElementById('ration_size_kg').required = false;
+        document.getElementById('feeding_frequency').required = false;
+        
+        // Clear and reset all new diet inputs
+        newDietNameInput.value = '';
+        document.getElementById('total_ration_size_kg').value = '';
+        document.getElementById('ration_size_kg').value = '';
+        document.getElementById('feeding_frequency').value = '';
+        document.getElementById('diet_notes').value = '';
+        
+        // Hide new feed item area if open
+        if(isNewFeedItemVisible) toggleNewFeedItemInput();
+
+        // Clear component rows except one default
+        componentContainer.innerHTML = '';
+        addDietComponentRow();
+        updatePercentageTotal();
+
+        toggleBtn.textContent = '+ Define New';
+    }
+}
+
+
+// =========================================================
+// HELPER FUNCTIONS
+// =========================================================
+
+function displayMessage(message, isSuccess = true) {
+    const msgContainer = document.getElementById('messageContainer');
+    msgContainer.textContent = message;
+    
+    msgContainer.className = 'mb-4 rounded-lg p-3 text-sm font-medium';
+    
+    if (isSuccess) {
+        msgContainer.classList.add('bg-green-100', 'text-green-800');
+    } else {
+        msgContainer.classList.add('bg-red-100', 'text-red-800');
+    }
+    msgContainer.classList.remove('hidden');
+}
+
+/**
+ * Utility function to populate a select element.
+ */
+function populateSelectElement(selectElement, data, defaultValueText, idKey, nameKey) {
+    if (!selectElement) return;
+
+    const currentSelection = selectElement.value;
+    selectElement.innerHTML = ''; 
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = defaultValueText;
+    selectElement.appendChild(defaultOption);
+
+    data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item[idKey];
+        option.textContent = item[nameKey];
+        selectElement.appendChild(option);
+    });
+
+    selectElement.value = currentSelection;
+}
+
+function populateSelect(selectId, data, defaultValueText) {
+    const selectElement = document.getElementById(selectId);
+    if (!selectElement) return;
+
+    if (selectId === 'species_id') {
+        populateSelectElement(selectElement, data, defaultValueText, 'species_id', 'species_name');
+        selectElement.disabled = isNewSpeciesVisible;
+    } else if (selectId === 'current_diet_id') {
+        populateSelectElement(selectElement, data, defaultValueText, 'diet_id', 'diet_name');
+        selectElement.disabled = isNewDietVisible;
+    }
+}
+
+
+// =========================================================
+// CORE SUBMISSION LOGIC
+// =========================================================
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const submitButton = document.getElementById('submitButton');
+    const newSpeciesNameInput = document.getElementById('new_species_name');
+    const newDietNameInput = document.getElementById('new_diet_name');
+    const messageContainer = document.getElementById('messageContainer');
+
+    submitButton.disabled = true;
+    submitButton.textContent = 'Saving...';
+    messageContainer.classList.add('hidden');
+
+    const formData = new FormData(form);
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        // We exclude the temporary feed item inputs from the main form data entirely
+        if (key.endsWith('_temp')) continue; 
+        data[key] = value === '' ? null : value;
+    }
+    
+    if (data.weight_kg) {
+        data.weight_kg = parseFloat(data.weight_kg);
+    }
+    
+    // --- STEP 1: Handle New Species Creation (if requested) ---
+    if (isNewSpeciesVisible && newSpeciesNameInput.value.trim() !== '') {
+        const newSpeciesResult = await addNewSpecies(data.new_species_name, data.base_notes);
+        
+        if (newSpeciesResult.success) {
+            data.species_id = newSpeciesResult.species_id;
+            displayMessage(`Species '${newSpeciesResult.species_name}' created. Processing animal...`, true);
+        } else {
+            displayMessage(`Failed to create new species: ${newSpeciesResult.message}`, false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+    } else if (isNewSpeciesVisible && newSpeciesNameInput.value.trim() === '') {
+        displayMessage('Please enter a New Species Name or select one from the list.', false);
+        submitButton.disabled = false;
+        submitButton.textContent = 'Save Animal';
+        return;
+    }
+    
+    // --- STEP 2: Handle New Diet Creation (if requested) ---
+    if (isNewDietVisible && newDietNameInput.value.trim() !== '') {
+        
+        if (!data.total_ration_size_kg || !data.ration_size_kg || !data.feeding_frequency) {
+            displayMessage('All required base diet fields must be filled.', false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+
+        const components = [];
+        let totalPercentage = 0;
+        let hasEmptyComponent = false;
+
+        const componentRows = componentContainer.querySelectorAll('.flex.gap-2.items-center');
+        
+        if (componentRows.length === 0) {
+            displayMessage('A new diet must contain at least one feed item component.', false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+
+        componentRows.forEach(row => {
+            const feedSelect = row.querySelector('[data-component-type="feed_id"]');
+            const percentInput = row.querySelector('[data-component-type="percentage"]');
+
+            // Manual Validation Check
+            if (!feedSelect.value || percentInput.value === null || percentInput.value.trim() === '') {
+                hasEmptyComponent = true;
+                return;
+            }
+
+            const percentage = parseFloat(percentInput.value);
+            totalPercentage += percentage;
+
+            components.push({
+                feed_id: parseInt(feedSelect.value),
+                percentage_in_diet: percentage
+            });
+        });
+
+        if (hasEmptyComponent) {
+            displayMessage('Please ensure all component rows have both a Feed Item and a Percentage.', false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+
+        if (Math.abs(totalPercentage - 100.00) > 0.01) { 
+            displayMessage(`Diet component percentages must total 100%. Current total: ${totalPercentage.toFixed(2)}%.`, false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+        
+        const newDietData = {
+            diet_name: data.new_diet_name,
+            total_ration_size_kg: parseFloat(data.total_ration_size_kg),
+            ration_size_kg: parseFloat(data.ration_size_kg),
+            feeding_frequency: parseInt(data.feeding_frequency),
+            notes: data.diet_notes,
+            components: components 
+        };
+
+        const newDietResult = await addNewDiet(newDietData);
+        
+        if (newDietResult.success) {
+            data.current_diet_id = newDietResult.diet_id;
+            displayMessage(`Diet '${newDietResult.diet_name}' created. Processing animal...`, true);
+        } else {
+            displayMessage(`Failed to create new diet: ${newDietResult.message}`, false);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Animal';
+            return;
+        }
+    } else if (isNewDietVisible && newDietNameInput.value.trim() === '') {
+        displayMessage('Please enter a New Diet Name or select one from the list.', false);
+        submitButton.disabled = false;
+        submitButton.textContent = 'Save Animal';
+        return;
+    }
+
+
+    // --- STEP 3: Submit Animal Data ---
+    const endpoint = form.action; 
+    
+    // Remove temporary keys from data object before final submission
+    delete data.new_species_name;
+    delete data.base_notes;
+    delete data.new_diet_name;
+    delete data.total_ration_size_kg;
+    delete data.ration_size_kg;
+    delete data.feeding_frequency;
+    delete data.diet_notes;
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            displayMessage(`Animal '${data.animal_name}' added successfully! (ID: ${result.animal_id})`, true);
+            form.reset(); 
+            
+            // Reset toggle states
+            if(isNewSpeciesVisible) toggleNewSpeciesInput(); 
+            if(isNewDietVisible) toggleNewDietInput(); 
+            if(isNewFeedItemVisible) toggleNewFeedItemInput(); // Reset feed item form too
+
+            fetchSpeciesAndPopulate();
+            fetchDietsAndPopulate();
+
+        } else {
+            // Use server message if available, otherwise use a custom fallback
+            const errorMessage = result.message || 'A database error occurred during final submission.';
+            displayMessage(`Error adding animal: ${errorMessage}`, false);
+        }
+    } catch (error) {
+        console.error('Network or unexpected error during animal submission:', error);
+        displayMessage('A network error occurred. Could not connect to the server.', false);
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Save Animal';
+    }
+}
+
+
+// =========================================================
+// API CALLS FOR CREATION
+// =========================================================
+
+async function addNewSpecies(species_name, base_notes) {
+    const apiEndpoint = '/api/species/add';
+    
+    try {
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ species_name, base_notes })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            return { success: true, species_id: result.insertId, species_name: species_name };
+        } else {
+            return { success: false, message: result.message || 'Unknown species creation error.' };
+        }
+    } catch (error) {
+        console.error('Error creating new species via API:', error);
+        return { success: false, message: 'Network error while creating new species.' };
+    }
+}
+
+async function addNewDiet(newDietData) {
+    const apiEndpoint = '/api/diets/add';
+    
+    try {
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newDietData) 
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            return { success: true, diet_id: result.insertId, diet_name: newDietData.diet_name };
+        } else {
+            return { success: false, message: result.message || 'Unknown diet creation error.' };
+        }
+    } catch (error) {
+        console.error('Error creating new diet via API:', error);
+        return { success: false, message: 'Network error while creating new diet.' };
+    }
+}
+
+
+// =========================================================
+// API CALLS FOR FETCHING (Uses Mock/Fallback Data)
+// =========================================================
+
+async function fetchSpeciesAndPopulate() {
+    const apiEndpoint = '/api/species'; 
+    const mockSpeciesData = [
+        { species_id: '99', species_name: 'Mock Cattle' },
+        { species_id: '98', species_name: 'Mock Sheep' },
+        { species_id: '97', species_name: 'Mock Goat' },
+    ];
+    let speciesData = [];
+    let errorOccurred = false;
+
+    try {
+        const response = await fetch(apiEndpoint);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        try {
+            speciesData = await response.json();
+        } catch (e) {
+            errorOccurred = true;
+            speciesData = mockSpeciesData;
+            console.warn("Falling back to mock species data.");
+        }
+    } catch (error) {
+        errorOccurred = true;
+        speciesData = mockSpeciesData;
+        console.warn("Falling back to mock species data.");
+    }
+    
+    populateSelect('species_id', speciesData, errorOccurred ? "⚠️ Load Failed (Mock Data)" : "Select an Animal Species");
+}
+
+
+async function fetchDietsAndPopulate() {
+    const apiEndpoint = '/api/diets'; 
+    const mockDietsData = [
+        { diet_id: '201', diet_name: 'Standard Maintenance Ration (Mock)' },
+        { diet_id: '202', diet_name: 'High-Energy Production (Mock)' },
+    ];
+    let dietsData = [];
+    let errorOccurred = false;
+
+    try {
+        const response = await fetch(apiEndpoint);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        try {
+            dietsData = await response.json();
+        } catch (e) {
+            errorOccurred = true;
+            dietsData = mockDietsData;
+            console.warn("Falling back to mock diets data.");
+        }
+    } catch (error) {
+        errorOccurred = true;
+        dietsData = mockDietsData;
+        console.warn("Falling back to mock diets data.");
+    }
+    
+    populateSelect('current_diet_id', dietsData, errorOccurred ? "⚠️ Load Failed (Mock Data)" : "No Diet Assigned Yet (Optional)");
+}
+
+async function fetchFeedItemsAndPopulate() {
+    const apiEndpoint = '/api/feeditems'; 
+    const mockFeedData = [
+        { feed_id: '501', feed_name: 'Mock Alfalfa Hay' },
+        { feed_id: '502', feed_name: 'Mock Corn Pellets' },
+        { feed_id: '503', feed_name: 'Mock Mineral Block' },
+    ];
+    let feedData = [];
+
+    try {
+        const response = await fetch(apiEndpoint);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        try {
+            feedData = await response.json();
+        } catch (e) {
+            feedData = mockFeedData;
+        }
+
+    } catch (error) {
+        feedData = mockFeedData;
+    }
+    
+    // Ensure all feed_ids are strings for consistent comparison later
+    allFeedItems = feedData.map(item => ({...item, feed_id: item.feed_id.toString()}));
+    
+    // Re-render components if needed
+    componentContainer.innerHTML = '';
+    addDietComponentRow();
+    updatePercentageTotal();
+}
+</script>
+</body>
+</html>

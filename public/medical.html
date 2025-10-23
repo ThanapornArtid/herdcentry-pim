@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HerdSentry - Medical Records</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center mb-4">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-12 w-auto mr-3">
+        <h1 class="text-3xl font-bold">Medical Records</h1>
+    </div>
+
+    <div id="modeBanner" class="hidden p-3 rounded mb-4 text-sm"></div>
+    <div id="loading" class="p-4 rounded-md bg-blue-50 text-blue-800 mb-4">Loading animals...</div>
+    <div id="error" class="hidden p-4 rounded-md bg-red-50 text-red-800 mb-4"></div>
+
+    <!-- Animal Selector -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+        <label for="animalSelect" class="block text-sm font-medium text-gray-700 mb-2">Select Animal</label>
+        <select id="animalSelect" class="w-full p-2 border rounded" disabled>
+            <option value="">Loading animals...</option>
+        </select>
+    </div>
+
+    <div id="content" class="hidden space-y-6">
+        <!-- Add Medical Exam Form -->
+        <section class="bg-white p-4 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Record Medical Examination</h2>
+            <form id="examForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Exam Date</label>
+                        <input type="datetime-local" id="examDate" 
+                               class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Veterinarian</label>
+                        <input type="text" id="veterinarian" placeholder="Dr. Name"
+                               class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                        <input type="number" id="weightKg" step="0.01" placeholder="0.00"
+                               class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Temperature (°C)</label>
+                        <input type="number" id="temperatureC" step="0.1" placeholder="0.0"
+                               class="w-full p-2 border rounded">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Exam Notes</label>
+                    <textarea id="examNotes" rows="3" placeholder="Enter examination notes..."
+                            class="w-full p-2 border rounded"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
+                        Record Exam
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Import Diagnostic Results -->
+        <section class="bg-white p-4 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Import Diagnostic Results</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Results JSON
+                        <span class="text-gray-500">(Array of test results)</span>
+                    </label>
+                    <textarea id="resultsJson" rows="8" 
+                              placeholder='[
+  {
+    "test_name": "Blood Glucose",
+    "test_date": "2025-10-23T10:00:00",
+    "result_value": "5.2",
+    "units": "mmol/L",
+    "reference_range": "4.0-8.0",
+    "notes": "Fasting sample"
+  }
+]'
+                              class="w-full p-2 border rounded font-mono text-sm"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button id="importBtn" class="px-4 py-2 bg-green-600 text-white rounded">
+                        Import Results
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload Medical Files -->
+        <section class="bg-white p-4 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">📁 Upload Medical Files</h2>
+            <div class="space-y-4">
+                
+                <!-- File Drop Zone -->
+                <div id="fileDropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                    <div class="space-y-2">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="text-sm text-gray-600">
+                            <label for="fileInput" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                <span>Upload files</span>
+                                <input id="fileInput" name="files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv" class="sr-only">
+                            </label>
+                            <span> or drag and drop</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Images, PDF, Word docs, text files up to 10MB each</p>
+                    </div>
+                </div>
+
+                <!-- File List -->
+                <div id="fileList" class="hidden space-y-2"></div>
+
+                <!-- Upload Options -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Link to Exam (optional)</label>
+                        <select id="examLinkSelect" class="w-full p-2 border rounded">
+                            <option value="">Select an exam...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Link to Diagnostic Result (optional)</label>
+                        <select id="resultLinkSelect" class="w-full p-2 border rounded">
+                            <option value="">Select a result...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Uploaded by</label>
+                        <input type="text" id="uploadedBy" placeholder="Dr. Name" class="w-full p-2 border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <input type="text" id="uploadNotes" placeholder="Description of files" class="w-full p-2 border rounded">
+                    </div>
+                </div>
+
+                <!-- Upload Button -->
+                <div class="flex justify-end">
+                    <button id="uploadBtn" class="px-4 py-2 bg-purple-600 text-white rounded disabled:bg-gray-400" disabled>
+                        Upload Files
+                    </button>
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="uploadProgress" class="hidden">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="text-sm text-gray-600 mt-1">Uploading...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Medical File Gallery -->
+        <section class="bg-white p-4 rounded shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">📎 Medical Files</h2>
+                <button id="refreshFilesBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Refresh Files</button>
+            </div>
+            <div id="medicalFilesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Files will be populated here -->
+            </div>
+        </section>
+
+        <!-- Medical History -->
+        <section class="bg-white p-4 rounded shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Medical History</h2>
+                <div class="flex gap-2">
+                    <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Refresh</button>
+                    <button id="exportBtn" class="px-4 py-2 bg-gray-600 text-white rounded text-sm">Export</button>
+                    <button id="useMockBtn" class="px-4 py-2 bg-gray-600 text-white rounded text-sm">Use Mock Data</button>
+                </div>
+            </div>
+
+            <!-- Medical Exams -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Medical Exams</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Date</th>
+                                <th class="px-3 py-2 text-left">Veterinarian</th>
+                                <th class="px-3 py-2 text-left">Weight</th>
+                                <th class="px-3 py-2 text-left">Temp</th>
+                                <th class="px-3 py-2 text-left">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Diagnostic Results -->
+            <div>
+                <h3 class="text-lg font-medium mb-3">Diagnostic Results</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Date</th>
+                                <th class="px-3 py-2 text-left">Test</th>
+                                <th class="px-3 py-2 text-left">Result</th>
+                                <th class="px-3 py-2 text-left">Units</th>
+                                <th class="px-3 py-2 text-left">Reference</th>
+                                <th class="px-3 py-2 text-left">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+// State
+let selectedAnimalId = null;
+
+// Fetch animals for the selector
+async function fetchAnimals(useMock = false) {
+    try {
+        let animals;
+        // if (useMock) {
+        //     animals = getMockAnimals();
+        // } else {
+            const res = await fetch('/api/allAnimals');
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            animals = await res.json();
+        // }
+
+        const select = document.getElementById('animalSelect');
+        select.innerHTML = '<option value="">Select an animal...</option>';
+        animals.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.animal_id;
+            opt.textContent = `${a.animal_name} (ID: ${a.animal_id})`;
+            select.appendChild(opt);
+        });
+        select.disabled = false;
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// Fetch medical records for selected animal
+async function fetchMedicalRecords(animalId, useMock = false) {
+    if (!animalId) return;
+
+    try {
+        let data;
+        if (useMock) {
+            data = getMockMedicalRecords(animalId);
+        } else {
+            const res = await fetch(`/api/animals/${animalId}/medical`);
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            data = await res.json();
+        }
+
+        // Populate exams table
+        const examsBody = document.getElementById('examsBody');
+        examsBody.innerHTML = '';
+        data.exams.forEach(exam => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-3 py-2">${formatDateTime(exam.exam_date)}</td>
+                <td class="px-3 py-2">${escapeHtml(exam.veterinarian || '—')}</td>
+                <td class="px-3 py-2">${exam.weight_kg ? exam.weight_kg + ' kg' : '—'}</td>
+                <td class="px-3 py-2">${exam.temperature_c ? exam.temperature_c + ' °C' : '—'}</td>
+                <td class="px-3 py-2">${escapeHtml(exam.exam_notes || '—')}</td>
+            `;
+            examsBody.appendChild(tr);
+        });
+
+        // Populate results table
+        const resultsBody = document.getElementById('resultsBody');
+        resultsBody.innerHTML = '';
+        data.results.forEach(result => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-3 py-2">${formatDateTime(result.test_date)}</td>
+                <td class="px-3 py-2">${escapeHtml(result.test_name)}</td>
+                <td class="px-3 py-2">${escapeHtml(result.result_value)}</td>
+                <td class="px-3 py-2">${escapeHtml(result.units || '—')}</td>
+                <td class="px-3 py-2">${escapeHtml(result.reference_range || '—')}</td>
+                <td class="px-3 py-2">${escapeHtml(result.notes || '—')}</td>
+            `;
+            resultsBody.appendChild(tr);
+        });
+
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// Add a medical exam
+async function addMedicalExam(examData, useMock = false) {
+    if (!selectedAnimalId) {
+        showError('Please select an animal first');
+        return;
+    }
+
+    try {
+        if (useMock) {
+            console.log('Mock mode: Would add exam:', examData);
+            await new Promise(r => setTimeout(r, 500)); // simulate delay
+        } else {
+            const res = await fetch(`/api/animals/${selectedAnimalId}/medical`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(examData)
+            });
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        }
+
+        // Refresh medical records
+        fetchMedicalRecords(selectedAnimalId, useMock);
+        
+        // Reset form
+        document.getElementById('examForm').reset();
+
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// Import diagnostic results
+async function importDiagnosticResults(results, useMock = false) {
+    if (!selectedAnimalId) {
+        showError('Please select an animal first');
+        return;
+    }
+
+    try {
+        if (useMock) {
+            console.log('Mock mode: Would import results:', results);
+            await new Promise(r => setTimeout(r, 500)); // simulate delay
+        } else {
+            const res = await fetch(`/api/animals/${selectedAnimalId}/medical/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ results })
+            });
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        }
+
+        // Refresh medical records
+        fetchMedicalRecords(selectedAnimalId, useMock);
+        
+        // Clear import textarea
+        document.getElementById('resultsJson').value = '';
+
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// Export medical records as CSV
+function exportMedicalRecords() {
+    const rows = [];
+    
+    // Add exams
+    rows.push(['Medical Exams']);
+    rows.push(['Date', 'Veterinarian', 'Weight (kg)', 'Temperature (°C)', 'Notes']);
+    Array.from(document.getElementById('examsBody').children).forEach(tr => {
+        rows.push(Array.from(tr.children).map(td => td.textContent.replace('—', '')));
+    });
+    
+    rows.push([]); // blank line
+    
+    // Add results
+    rows.push(['Diagnostic Results']);
+    rows.push(['Date', 'Test', 'Result', 'Units', 'Reference Range', 'Notes']);
+    Array.from(document.getElementById('resultsBody').children).forEach(tr => {
+        rows.push(Array.from(tr.children).map(td => td.textContent.replace('—', '')));
+    });
+
+    // Create and download CSV
+    const csvContent = rows.map(r => r.map(cell => 
+        `"${String(cell).replace(/"/g, '""')}"`
+    ).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `medical-records-${selectedAnimalId}-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+// File Upload Functions
+let selectedFiles = [];
+
+// Handle file selection
+function handleFileSelect(files) {
+    selectedFiles = Array.from(files);
+    displayFileList();
+    document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+}
+
+// Display selected files
+function displayFileList() {
+    const fileList = document.getElementById('fileList');
+    
+    if (selectedFiles.length === 0) {
+        fileList.classList.add('hidden');
+        return;
+    }
+
+    fileList.classList.remove('hidden');
+    fileList.innerHTML = '';
+
+    selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded border';
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'flex items-center space-x-3';
+        
+        // File icon based on type
+        const icon = getFileIcon(file.type);
+        fileInfo.innerHTML = `
+            <span class="text-2xl">${icon}</span>
+            <div>
+                <p class="text-sm font-medium text-gray-900">${escapeHtml(file.name)}</p>
+                <p class="text-xs text-gray-500">${formatFileSize(file.size)}</p>
+            </div>
+        `;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'text-red-600 hover:text-red-800 text-sm';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = () => removeFile(index);
+
+        fileItem.appendChild(fileInfo);
+        fileItem.appendChild(removeBtn);
+        fileList.appendChild(fileItem);
+    });
+}
+
+// Remove file from selection
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    displayFileList();
+    document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+}
+
+// Get file icon based on MIME type
+function getFileIcon(mimeType) {
+    if (mimeType.startsWith('image/')) return '🖼️';
+    if (mimeType === 'application/pdf') return '📄';
+    if (mimeType.includes('word')) return '📝';
+    if (mimeType.includes('text')) return '📃';
+    return '📎';
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Upload files to server
+async function uploadFiles(useMock = false) {
+    if (!selectedAnimalId) {
+        showError('Please select an animal first');
+        return;
+    }
+
+    if (selectedFiles.length === 0) {
+        showError('Please select files to upload');
+        return;
+    }
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    try {
+        uploadBtn.disabled = true;
+        progress.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Preparing upload...';
+
+        if (useMock) {
+            // Simulate upload progress
+            for (let i = 0; i <= 100; i += 10) {
+                progressBar.style.width = i + '%';
+                progressText.textContent = `Uploading... ${i}%`;
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            console.log('Mock mode: Would upload files:', selectedFiles.map(f => f.name));
+            progressText.textContent = 'Upload complete!';
+            
+            // Reset after delay
+            setTimeout(() => {
+                progress.classList.add('hidden');
+                selectedFiles = [];
+                displayFileList();
+                document.getElementById('fileInput').value = '';
+                populateExamAndResultSelects(); // refresh selects
+                fetchMedicalFiles(selectedAnimalId, useMock);
+            }, 1000);
+            
+        } else {
+            const formData = new FormData();
+            
+            // Add files
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            // Add optional fields
+            const examId = document.getElementById('examLinkSelect').value;
+            const resultId = document.getElementById('resultLinkSelect').value;
+            const uploadedBy = document.getElementById('uploadedBy').value;
+            const notes = document.getElementById('uploadNotes').value;
+
+            if (examId) formData.append('exam_id', examId);
+            if (resultId) formData.append('result_id', resultId);
+            if (uploadedBy) formData.append('uploaded_by', uploadedBy);
+            if (notes) formData.append('notes', notes);
+
+            // Upload with progress
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                    progressText.textContent = `Uploading... ${Math.round(percentComplete)}%`;
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 201) {
+                    progressText.textContent = 'Upload complete!';
+                    
+                    // Reset form
+                    setTimeout(() => {
+                        progress.classList.add('hidden');
+                        selectedFiles = [];
+                        displayFileList();
+                        document.getElementById('fileInput').value = '';
+                        document.getElementById('uploadedBy').value = '';
+                        document.getElementById('uploadNotes').value = '';
+                        document.getElementById('examLinkSelect').value = '';
+                        document.getElementById('resultLinkSelect').value = '';
+                        
+                        // Refresh data
+                        fetchMedicalFiles(selectedAnimalId, useMock);
+                        populateExamAndResultSelects();
+                    }, 1000);
+                } else {
+                    throw new Error(`Upload failed: ${xhr.status}`);
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                throw new Error('Upload failed: Network error');
+            });
+
+            xhr.open('POST', `/api/animals/${selectedAnimalId}/medical/files`);
+            xhr.send(formData);
+        }
+
+    } catch (err) {
+        console.error('Upload error:', err);
+        showError(`Upload failed: ${err.message}`);
+        progress.classList.add('hidden');
+    } finally {
+        uploadBtn.disabled = false;
+    }
+}
+
+// Fetch and display medical files
+async function fetchMedicalFiles(animalId, useMock = false) {
+    if (!animalId) return;
+
+    try {
+        let files;
+        if (useMock) {
+            files = getMockMedicalFiles(animalId);
+        } else {
+            const res = await fetch(`/api/animals/${animalId}/medical/files`);
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            files = await res.json();
+        }
+
+        displayMedicalFiles(files, useMock);
+    } catch (err) {
+        console.error('Error fetching medical files:', err);
+        showError(`Error fetching files: ${err.message}`);
+    }
+}
+
+// Display medical files in grid
+function displayMedicalFiles(files, useMock = false) {
+    const grid = document.getElementById('medicalFilesGrid');
+    
+    if (files.length === 0) {
+        grid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">No medical files uploaded yet.</p>';
+        return;
+    }
+
+    grid.innerHTML = '';
+
+    files.forEach(file => {
+        const fileCard = document.createElement('div');
+        fileCard.className = 'border rounded-lg p-4 hover:shadow-md transition-shadow';
+        
+        const icon = getFileIcon(file.mime_type);
+        const linkedTo = file.exam_date ? `Exam (${formatDateTime(file.exam_date)})` : 
+                        file.test_name ? `Test: ${file.test_name}` : 'General';
+
+        fileCard.innerHTML = `
+            <div class="flex items-center space-x-3 mb-3">
+                <span class="text-2xl">${icon}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(file.original_filename)}</p>
+                    <p class="text-xs text-gray-500">${formatFileSize(file.file_size_bytes)}</p>
+                </div>
+            </div>
+            
+            <div class="space-y-2 text-xs text-gray-600">
+                <p><strong>Linked to:</strong> ${linkedTo}</p>
+                <p><strong>Uploaded:</strong> ${formatDateTime(file.uploaded_at)}</p>
+                ${file.uploaded_by ? `<p><strong>By:</strong> ${escapeHtml(file.uploaded_by)}</p>` : ''}
+                ${file.notes ? `<p><strong>Notes:</strong> ${escapeHtml(file.notes)}</p>` : ''}
+            </div>
+            
+            <div class="mt-3 flex justify-end">
+                <button onclick="downloadFile(${file.file_id}, '${escapeHtml(file.original_filename)}', ${useMock})" 
+                        class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                    Download
+                </button>
+            </div>
+        `;
+
+        grid.appendChild(fileCard);
+    });
+}
+
+// Download file
+async function downloadFile(fileId, filename, useMock = false) {
+    try {
+        if (useMock) {
+            console.log(`Mock mode: Would download file ${fileId} (${filename})`);
+            showError('Mock mode: Download functionality not available');
+            return;
+        }
+
+        const response = await fetch(`/api/medical/files/${fileId}/download`);
+        if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Download error:', err);
+        showError(`Download failed: ${err.message}`);
+    }
+}
+
+// Populate exam and result selects for linking files
+async function populateExamAndResultSelects() {
+    if (!selectedAnimalId) return;
+
+    try {
+        let data;
+        if (isMockMode()) {
+            data = getMockMedicalRecords(selectedAnimalId);
+        } else {
+            const res = await fetch(`/api/animals/${selectedAnimalId}/medical`);
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            data = await res.json();
+        }
+
+        // Populate exam select
+        const examSelect = document.getElementById('examLinkSelect');
+        examSelect.innerHTML = '<option value="">Select an exam...</option>';
+        data.exams.forEach(exam => {
+            const option = document.createElement('option');
+            option.value = exam.exam_id;
+            option.textContent = `${formatDateTime(exam.exam_date)} - ${exam.veterinarian || 'No vet'}`;
+            examSelect.appendChild(option);
+        });
+
+        // Populate result select
+        const resultSelect = document.getElementById('resultLinkSelect');
+        resultSelect.innerHTML = '<option value="">Select a result...</option>';
+        data.results.forEach(result => {
+            const option = document.createElement('option');
+            option.value = result.result_id;
+            option.textContent = `${result.test_name} - ${formatDateTime(result.test_date)}`;
+            resultSelect.appendChild(option);
+        });
+
+    } catch (err) {
+        console.error('Error populating selects:', err);
+    }
+}
+
+// Helper Functions
+function formatDateTime(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString();
+}
+
+function escapeHtml(s) {
+    if (!s && s !== 0) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
+function showError(message) {
+    const error = document.getElementById('error');
+    error.textContent = message;
+    error.classList.remove('hidden');
+    setTimeout(() => error.classList.add('hidden'), 5000);
+}
+
+function handleError(err) {
+    console.error(err);
+    showError(err.message);
+    
+    // If not in mock mode, offer mock data
+    if (!isMockMode()) {
+        console.warn('Falling back to mock data due to API error');
+        setMockMode(true);
+        const modeBanner = document.getElementById('modeBanner');
+        modeBanner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        modeBanner.textContent = 'Live data unavailable — showing mock data';
+        modeBanner.classList.remove('hidden');
+        
+        // Reload with mock data
+        fetchAnimals(true);
+        if (selectedAnimalId) {
+            fetchMedicalRecords(selectedAnimalId, true);
+        }
+    }
+}
+
+// Mock Data Helpers
+function getMockAnimals() {
+    return [
+        { animal_id: 1, animal_name: "Bessie" },
+        { animal_id: 2, animal_name: "Molly" },
+        { animal_id: 3, animal_name: "Luna" },
+        { animal_id: 4, animal_name: "Daisy" }
+    ];
+}
+
+function getMockMedicalRecords(animalId) {
+    const now = new Date();
+    const yesterday = new Date(now - 24*60*60*1000);
+    const lastWeek = new Date(now - 7*24*60*60*1000);
+    
+    return {
+        exams: [
+            {
+                exam_id: 1,
+                animal_id: animalId,
+                exam_date: now.toISOString(),
+                veterinarian: "Dr. Smith",
+                exam_notes: "Routine checkup, all vital signs normal",
+                weight_kg: 650.5,
+                temperature_c: 38.5
+            },
+            {
+                exam_id: 2,
+                animal_id: animalId,
+                exam_date: lastWeek.toISOString(),
+                veterinarian: "Dr. Jones",
+                exam_notes: "Follow-up visit, recovery proceeding well",
+                weight_kg: 648.0,
+                temperature_c: 38.7
+            }
+        ],
+        results: [
+            {
+                result_id: 1,
+                exam_id: 1,
+                animal_id: animalId,
+                test_name: "Blood Glucose",
+                test_date: now.toISOString(),
+                result_value: "5.2",
+                units: "mmol/L",
+                reference_range: "4.0-8.0",
+                notes: "Fasting sample"
+            },
+            {
+                result_id: 2,
+                exam_id: 1,
+                animal_id: animalId,
+                test_name: "Complete Blood Count",
+                test_date: now.toISOString(),
+                result_value: "Normal",
+                notes: "All parameters within reference ranges"
+            },
+            {
+                result_id: 3,
+                exam_id: 2,
+                animal_id: animalId,
+                test_name: "Ketones",
+                test_date: lastWeek.toISOString(),
+                result_value: "Negative",
+                notes: "Urine dipstick test"
+            }
+        ]
+    };
+}
+
+function getMockMedicalFiles(animalId) {
+    const now = new Date();
+    const yesterday = new Date(now - 24*60*60*1000);
+    
+    return [
+        {
+            file_id: 1,
+            animal_id: animalId,
+            exam_id: 1,
+            result_id: null,
+            original_filename: "xray-chest-2025-10-23.jpg",
+            storage_filename: "1729680000000-xray-chest-2025-10-23.jpg",
+            mime_type: "image/jpeg",
+            file_size_bytes: 2547821,
+            uploaded_at: now.toISOString(),
+            uploaded_by: "Dr. Smith",
+            notes: "Chest X-ray from annual checkup",
+            exam_date: now.toISOString(),
+            veterinarian: "Dr. Smith",
+            test_name: null,
+            test_date: null
+        },
+        {
+            file_id: 2,
+            animal_id: animalId,
+            exam_id: null,
+            result_id: 1,
+            original_filename: "blood-test-results.pdf",
+            storage_filename: "1729680000000-blood-test-results.pdf",
+            mime_type: "application/pdf",
+            file_size_bytes: 156789,
+            uploaded_at: yesterday.toISOString(),
+            uploaded_by: "Lab Tech",
+            notes: "Complete blood panel results",
+            exam_date: null,
+            veterinarian: null,
+            test_name: "Blood Glucose",
+            test_date: now.toISOString()
+        },
+        {
+            file_id: 3,
+            animal_id: animalId,
+            exam_id: null,
+            result_id: null,
+            original_filename: "vaccination-record.png",
+            storage_filename: "1729680000000-vaccination-record.png",
+            mime_type: "image/png",
+            file_size_bytes: 892341,
+            uploaded_at: yesterday.toISOString(),
+            uploaded_by: "Dr. Jones",
+            notes: "Updated vaccination certificate",
+            exam_date: null,
+            veterinarian: null,
+            test_name: null,
+            test_date: null
+        }
+    ];
+}
+
+// Mock Mode Helpers
+function isMockMode() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mock') === '1' || params.get('mock') === 'true') return true;
+    } catch (e) {}
+    return localStorage.getItem('useMock') === '1';
+}
+
+function setMockMode(enabled) {
+    localStorage.setItem('useMock', enabled ? '1' : '0');
+    updateUseMockButton();
+}
+
+function updateUseMockButton() {
+    const useMockBtn = document.getElementById('useMockBtn');
+    useMockBtn.classList.remove('hidden');
+    if (isMockMode()) {
+        useMockBtn.textContent = 'Using Mock Data (click for live)';
+    } else {
+        useMockBtn.textContent = 'Use Mock Data';
+    }
+    useMockBtn.onclick = () => {
+        setMockMode(!isMockMode());
+        fetchAnimals(isMockMode());
+        if (selectedAnimalId) {
+            fetchMedicalRecords(selectedAnimalId, isMockMode());
+        }
+    };
+    updateModeBanner();
+}
+
+function updateModeBanner() {
+    const banner = document.getElementById('modeBanner');
+    if (!banner) return;
+    if (isMockMode()) {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        banner.textContent = 'Mock medical records active — data is simulated';
+        banner.classList.remove('hidden');
+    } else {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-green-50 text-green-800';
+        banner.textContent = 'Live medical records (connected to database)';
+        banner.classList.remove('hidden');
+    }
+}
+
+// Wire up events
+document.addEventListener('DOMContentLoaded', () => {
+    // Wire animal selector
+    document.getElementById('animalSelect').addEventListener('change', (e) => {
+        selectedAnimalId = e.target.value;
+        if (selectedAnimalId) {
+            fetchMedicalRecords(selectedAnimalId, isMockMode());
+            fetchMedicalFiles(selectedAnimalId, isMockMode());
+            populateExamAndResultSelects();
+        }
+    });
+
+    // Wire exam form
+    document.getElementById('examForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const examData = {
+            exam_date: document.getElementById('examDate').value,
+            veterinarian: document.getElementById('veterinarian').value,
+            exam_notes: document.getElementById('examNotes').value,
+            weight_kg: document.getElementById('weightKg').value || null,
+            temperature_c: document.getElementById('temperatureC').value || null
+        };
+        addMedicalExam(examData, isMockMode());
+    });
+
+    // Wire import button
+    document.getElementById('importBtn').addEventListener('click', () => {
+        try {
+            const json = document.getElementById('resultsJson').value;
+            const results = JSON.parse(json);
+            if (!Array.isArray(results)) {
+                throw new Error('Results must be an array');
+            }
+            importDiagnosticResults(results, isMockMode());
+        } catch (err) {
+            showError(`Invalid results JSON: ${err.message}`);
+        }
+    });
+
+    // Wire refresh/export
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        if (selectedAnimalId) {
+            fetchMedicalRecords(selectedAnimalId, isMockMode());
+        }
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportMedicalRecords);
+
+    // Wire file upload functionality
+    const fileInput = document.getElementById('fileInput');
+    const fileDropZone = document.getElementById('fileDropZone');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const refreshFilesBtn = document.getElementById('refreshFilesBtn');
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        handleFileSelect(e.target.files);
+    });
+
+    // Drag and drop
+    fileDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileDropZone.classList.add('border-blue-400', 'bg-blue-50');
+    });
+
+    fileDropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        fileDropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+
+    fileDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileDropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files; // This won't work, so we'll handle it differently
+            handleFileSelect(files);
+        }
+    });
+
+    // Upload button
+    uploadBtn.addEventListener('click', () => {
+        uploadFiles(isMockMode());
+    });
+
+    // Refresh files button
+    refreshFilesBtn.addEventListener('click', () => {
+        if (selectedAnimalId) {
+            fetchMedicalFiles(selectedAnimalId, isMockMode());
+        }
+    });
+
+    // Initialize mock button and banner
+    updateUseMockButton();
+    updateModeBanner();
+
+    // Initial load
+    fetchAnimals(isMockMode());
+});
+</script>
+
+</body>
+</html>

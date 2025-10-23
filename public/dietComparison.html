@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HerdSentry - Diet Health Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .transition-all-fast {
+            transition: all 0.2s ease-in-out;
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+<div class="max-w-7xl mx-auto">
+    <div class="flex items-center justify-center mb-6">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-16 w-auto mr-3">
+        <h1 class="text-4xl font-bold text-gray-800">
+            Diet Health Analysis
+        </h1>
+    </div>
+    
+    <!-- Loading and Error Messages -->
+    <div id="loadingMessage" class="mb-4 rounded-lg p-4 text-center text-lg font-medium bg-blue-100 text-blue-800">
+        Loading diet health data...
+    </div>
+    <div id="errorMessage" class="hidden mb-4 rounded-lg p-4 text-center text-lg font-medium bg-red-100 text-red-800"></div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Overview Stats Panel -->
+        <div class="lg:col-span-3">
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Total Animals -->
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-600">Total Animals</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="totalAnimals">0</p>
+                    </div>
+                    <!-- Average Health Score -->
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-600">Overall Health Score</h3>
+                        <p class="text-3xl font-bold text-blue-600" id="averageHealthScore">0%</p>
+                    </div>
+                    <!-- Total Active Diets -->
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-600">Active Diets</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="totalDiets">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diet Performance Chart -->
+        <div class="lg:col-span-2">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Diet Health Performance</h2>
+                <div class="h-[400px]">
+                    <canvas id="dietPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Score Distribution -->
+        <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Health Score Distribution</h2>
+                <div class="h-[400px]">
+                    <canvas id="healthDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diet Cards Section -->
+        <div class="lg:col-span-3">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Diet Details</h2>
+            <div id="dietCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Diet cards will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diet Card Template -->
+<template id="dietCardTemplate">
+    <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800 truncate" data-field="diet_name"></h3>
+                <p class="text-sm text-gray-500" data-field="animal_count"></p>
+            </div>
+            <span class="text-2xl font-bold" data-field="health_score_text"></span>
+        </div>
+        
+        <!-- Health Score Progress -->
+        <div class="mb-4">
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="h-2.5 rounded-full transition-all duration-500" data-field="health_score_bar"></div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">Weight Gain</p>
+                <p class="text-lg font-bold text-gray-800" data-field="weight_gain"></p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">Feed Efficiency</p>
+                <p class="text-lg font-bold text-gray-800" data-field="feed_efficiency"></p>
+            </div>
+        </div>
+
+        <!-- Health Indicators -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full" data-field="alert_indicator"></span>
+                    <span class="text-sm text-gray-600">Health Alerts</span>
+                </div>
+                <span class="text-sm font-medium" data-field="alert_count"></span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    fetchDietHealthData();
+});
+
+// Chart instances
+let performanceChart = null;
+let distributionChart = null;
+
+// Mock data for development
+const mockHealthData = {
+    overview: {
+        totalAnimals: 67,
+        averageHealthScore: 87.5,
+        totalDiets: 3,
+    },
+    diets: [
+        {
+            diet_id: 1,
+            diet_name: "Lactating Dairy Cow TMR",
+            animal_count: 14,
+            health_score: 92,
+            weight_gain: "+1.2 kg/week",
+            feed_efficiency: "1.6",
+            alert_count: 2,
+            alert_level: "low"
+        },
+        {
+            diet_id: 2,
+            diet_name: "Pig Grower (40kg - 80kg)",
+            animal_count: 45,
+            health_score: 81,
+            weight_gain: "+3.5 kg/week",
+            feed_efficiency: "2.1",
+            alert_count: 7,
+            alert_level: "medium"
+        },
+        {
+            diet_id: 3,
+            diet_name: "Laying Hen Maintenance",
+            animal_count: 250,
+            health_score: 98,
+            weight_gain: "Stable",
+            feed_efficiency: "1.8",
+            alert_count: 1,
+            alert_level: "low"
+        }
+    ]
+};
+
+async function fetchDietHealthData() {
+    const loadingMsg = document.getElementById('loadingMessage');
+    const errorMsg = document.getElementById('errorMessage');
+    const apiEndpoint = '/api/reports/diet-health';
+
+    try {
+        const response = await fetch(apiEndpoint);
+        
+        if (!response.ok) {
+            throw new Error(`API Error: Server responded with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        loadingMsg.textContent = 'Data loaded successfully!';
+        loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+        loadingMsg.classList.add('bg-green-100', 'text-green-800');
+        
+        renderDietHealthData(data);
+
+    } catch (error) {
+        console.warn(`Warning: Could not fetch from ${apiEndpoint}. ${error.message}. Using mock data.`);
+        
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            loadingMsg.textContent = 'Development mode: Using sample data for testing.';
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-yellow-100', 'text-yellow-800');
+            renderDietHealthData(mockHealthData);
+        } else {
+            loadingMsg.textContent = 'Error: Could not load health data. Please try again later.';
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-red-100', 'text-red-800');
+            errorMsg.textContent = error.message;
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+    }
+}
+
+function renderDietHealthData(data) {
+    // Update overview stats
+    document.getElementById('totalAnimals').textContent = data.overview.totalAnimals.toLocaleString();
+    document.getElementById('averageHealthScore').textContent = `${data.overview.averageHealthScore.toFixed(1)}%`;
+    document.getElementById('totalDiets').textContent = data.overview.totalDiets;
+
+    // Render charts
+    renderPerformanceChart(data.diets);
+    renderDistributionChart(data.diets);
+    
+    // Render diet cards
+    renderDietCards(data.diets);
+}
+
+function renderPerformanceChart(diets) {
+    if (performanceChart) {
+        performanceChart.destroy();
+    }
+
+    const ctx = document.getElementById('dietPerformanceChart').getContext('2d');
+    
+    performanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: diets.map(d => d.diet_name),
+            datasets: [{
+                label: 'Health Score',
+                data: diets.map(d => d.health_score),
+                backgroundColor: diets.map(d => getHealthScoreColor(d.health_score, 0.7)),
+                borderColor: diets.map(d => getHealthScoreColor(d.health_score, 1)),
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Health Score (%)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+function renderDistributionChart(diets) {
+    if (distributionChart) {
+        distributionChart.destroy();
+    }
+
+    const ctx = document.getElementById('healthDistributionChart').getContext('2d');
+    
+    // Calculate distribution
+    const ranges = {
+        'Excellent (90-100%)': 0,
+        'Good (75-89%)': 0,
+        'Fair (60-74%)': 0,
+        'Poor (<60%)': 0
+    };
+
+    diets.forEach(diet => {
+        const score = diet.health_score;
+        if (score >= 90) ranges['Excellent (90-100%)']++;
+        else if (score >= 75) ranges['Good (75-89%)']++;
+        else if (score >= 60) ranges['Fair (60-74%)']++;
+        else ranges['Poor (<60%)']++;
+    });
+
+    distributionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(ranges),
+            datasets: [{
+                data: Object.values(ranges),
+                backgroundColor: [
+                    '#10B981', // Excellent - Green
+                    '#3B82F6', // Good - Blue
+                    '#F59E0B', // Fair - Yellow
+                    '#EF4444'  // Poor - Red
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderDietCards(diets) {
+    const container = document.getElementById('dietCardsContainer');
+    const template = document.getElementById('dietCardTemplate');
+    container.innerHTML = '';
+
+    diets.forEach(diet => {
+        const card = template.content.cloneNode(true);
+
+        // Set diet name and count
+        card.querySelector('[data-field="diet_name"]').textContent = diet.diet_name;
+        card.querySelector('[data-field="animal_count"]').textContent = 
+            `${diet.animal_count} animal${diet.animal_count !== 1 ? 's' : ''}`;
+        
+        // Set health score
+        const scoreText = card.querySelector('[data-field="health_score_text"]');
+        scoreText.textContent = `${diet.health_score}%`;
+        scoreText.style.color = getHealthScoreColor(diet.health_score);
+
+        // Set health score bar
+        const scoreBar = card.querySelector('[data-field="health_score_bar"]');
+        scoreBar.style.width = `${diet.health_score}%`;
+        scoreBar.style.backgroundColor = getHealthScoreColor(diet.health_score);
+
+        // Set metrics
+        card.querySelector('[data-field="weight_gain"]').textContent = diet.weight_gain;
+        card.querySelector('[data-field="feed_efficiency"]').textContent = diet.feed_efficiency;
+
+        // Set alert indicator
+        const alertIndicator = card.querySelector('[data-field="alert_indicator"]');
+        const alertCount = card.querySelector('[data-field="alert_count"]');
+        
+        alertCount.textContent = `${diet.alert_count} alert${diet.alert_count !== 1 ? 's' : ''}`;
+        
+        switch(diet.alert_level) {
+            case 'high':
+                alertIndicator.classList.add('bg-red-500');
+                break;
+            case 'medium':
+                alertIndicator.classList.add('bg-yellow-500');
+                break;
+            default:
+                alertIndicator.classList.add('bg-green-500');
+        }
+
+        container.appendChild(card);
+    });
+}
+
+function getHealthScoreColor(score, alpha = 1) {
+    if (score >= 90) return `rgba(16, 185, 129, ${alpha})`; // Green
+    if (score >= 75) return `rgba(59, 130, 246, ${alpha})`; // Blue
+    if (score >= 60) return `rgba(245, 158, 11, ${alpha})`; // Yellow
+    return `rgba(239, 68, 68, ${alpha})`; // Red
+}
+</script>
+
+</body>
+</html>

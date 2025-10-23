@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HerdSentry - Live Animal Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS and JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <style>
+        #map { height: 75vh; }
+        .leaflet-popup-content {
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center mb-4">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-12 w-auto mr-3">
+        <h1 class="text-3xl font-bold">Live Animal Map</h1>
+    </div>
+
+    <div id="modeBanner" class="hidden p-3 rounded mb-4 text-sm"></div>
+
+    <div id="loading" class="p-4 rounded-md bg-blue-50 text-blue-800 mb-4">Loading animal locations...</div>
+    <div id="error" class="hidden p-4 rounded-md bg-red-50 text-red-800 mb-4"></div>
+
+    <div id="content" class="hidden space-y-6">
+        <!-- Map container -->
+        <div class="bg-white p-4 rounded shadow">
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-sm text-gray-600">
+                    <span id="lastUpdate"></span>
+                    <span id="animalCount" class="ml-4"></span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Refresh</button>
+                    <button id="toggleMovementBtn" class="px-4 py-2 bg-green-600 text-white rounded text-sm">Live Movement: ON</button>
+                    <button id="useMockBtn" class="px-4 py-2 bg-gray-600 text-white rounded text-sm">Use Mock Data</button>
+                </div>
+            </div>
+            <div id="map" class="rounded shadow-inner"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="bg-white p-4 rounded shadow">
+            <h3 class="font-semibold mb-2">Status Legend</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                    <span class="text-sm">Normal</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+                    <span class="text-sm">Warning</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                    <span class="text-sm">Alert</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 rounded-full bg-gray-500 mr-2"></div>
+                    <span class="text-sm">Unknown</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize the map with a default center (Los Angeles area to match database coordinates)
+let map = L.map('map').setView([34.0522, -118.2437], 12); // Los Angeles area
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Store markers by animal_id for updates
+let markers = {};
+let animalData = []; // Store current animal data for movement simulation
+let movementSimulation = null; // Store interval for movement simulation
+let isLiveMovementActive = false;
+
+// Format a timestamp for display
+function formatTimestamp(ts) {
+    if (!ts) return 'Unknown';
+    const date = new Date(ts);
+    return date.toLocaleString();
+}
+
+// Get marker color based on status
+function getMarkerColor(status) {
+    switch(status?.toLowerCase()) {
+        case 'normal': return 'green';
+        case 'warning': return 'yellow';
+        case 'alert': return 'red';
+        default: return 'gray';
+    }
+}
+
+// Create or update a marker for an animal
+function updateMarker(animal) {
+    const color = getMarkerColor(animal.location_status);
+    const markerHtml = `
+        <div class="font-semibold">${animal.animal_name}</div>
+        <div class="text-sm mt-1">
+            <div>Status: <span class="font-medium">${animal.location_status || 'Unknown'}</span></div>
+            <div>Speed: ${animal.speed ? animal.speed.toFixed(1) + ' km/h' : 'N/A'}</div>
+            <div>Last Update: ${formatTimestamp(animal.location_timestamp)}</div>
+        </div>
+    `;
+
+    if (markers[animal.animal_id]) {
+        // Update existing marker with smooth animation
+        markers[animal.animal_id]
+            .setLatLng([animal.latitude, animal.longitude])
+            .setPopupContent(markerHtml);
+    } else {
+        // Create new marker with custom icon
+        const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="w-4 h-4 rounded-full bg-${color}-500 border-2 border-white shadow"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
+        markers[animal.animal_id] = L.marker([animal.latitude, animal.longitude], { icon })
+            .bindPopup(markerHtml)
+            .addTo(map);
+    }
+}
+
+// Movement simulation functions
+function simulateAnimalMovement() {
+    if (!isLiveMovementActive || animalData.length === 0) return;
+    
+    animalData.forEach(animal => {
+        // Generate realistic movement based on animal type and behavior
+        const movementPattern = getMovementPattern(animal);
+        
+        // Update position based on movement pattern
+        animal.latitude += movementPattern.latDelta;
+        animal.longitude += movementPattern.lngDelta;
+        animal.speed = movementPattern.speed;
+        animal.location_status = movementPattern.status;
+        animal.location_timestamp = new Date().toISOString();
+        
+        // Update marker on map
+        updateMarker(animal);
+    });
+    
+    // Update status display
+    document.getElementById('lastUpdate').textContent = `Last Update: ${new Date().toLocaleString()}`;
+    console.log('Animals moved:', animalData.map(a => `${a.animal_name}: ${a.latitude.toFixed(6)}, ${a.longitude.toFixed(6)}`));
+}
+
+function getMovementPattern(animal) {
+    const baseSpeed = 0.0001; // Base movement delta (roughly 10 meters)
+    const time = Date.now();
+    
+    // Different movement patterns based on animal type and name
+    switch(animal.animal_name.toLowerCase()) {
+        case 'bessie': // Dairy cow - slow, steady movement
+            return {
+                latDelta: Math.sin(time / 30000) * baseSpeed * 0.5, // Slow sine wave
+                lngDelta: Math.cos(time / 25000) * baseSpeed * 0.3,
+                speed: 1.5 + Math.random() * 0.5,
+                status: Math.random() > 0.9 ? 'inactive' : 'normal'
+            };
+            
+        case 'porky': // Pig - more erratic movement
+            return {
+                latDelta: (Math.random() - 0.5) * baseSpeed * 1.5,
+                lngDelta: (Math.random() - 0.5) * baseSpeed * 1.2,
+                speed: 2.0 + Math.random() * 3.0,
+                status: animal.speed > 4 ? 'running' : 'normal'
+            };
+            
+        case 'henrietta': // Chicken - small, quick movements
+            return {
+                latDelta: (Math.random() - 0.5) * baseSpeed * 0.3,
+                lngDelta: (Math.random() - 0.5) * baseSpeed * 0.3,
+                speed: 0.5 + Math.random() * 1.0,
+                status: Math.random() > 0.95 ? 'abnormal' : 'normal'
+            };
+            
+        default: // Generic animal movement
+            return {
+                latDelta: (Math.random() - 0.5) * baseSpeed,
+                lngDelta: (Math.random() - 0.5) * baseSpeed,
+                speed: 1.0 + Math.random() * 2.0,
+                status: 'normal'
+            };
+    }
+}
+
+function startLiveMovement() {
+    if (movementSimulation) {
+        clearInterval(movementSimulation);
+    }
+    
+    isLiveMovementActive = true;
+    // Update positions every 3 seconds for realistic movement
+    movementSimulation = setInterval(simulateAnimalMovement, 3000);
+    console.log('Live movement simulation started');
+}
+
+function stopLiveMovement() {
+    if (movementSimulation) {
+        clearInterval(movementSimulation);
+        movementSimulation = null;
+    }
+    isLiveMovementActive = false;
+    console.log('Live movement simulation stopped');
+}
+
+async function fetchLocations(useMock = false) {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const content = document.getElementById('content');
+
+    loading.classList.remove('hidden');
+    loading.textContent = 'Loading animal locations...';
+    error.classList.add('hidden');
+
+    try {
+        let data;
+        if (useMock) {
+            data = getMockData();
+        } else {
+            const res = await fetch('/api/locations/live');
+            console.log('API Response status:', res.status);
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('API Error:', errorText);
+                throw new Error(`Server responded with ${res.status}: ${errorText}`);
+            }
+            data = await res.json();
+            console.log('API Response data:', data);
+            
+            // Convert string coordinates to numbers for proper map plotting
+            data = data.map(animal => ({
+                ...animal,
+                latitude: parseFloat(animal.latitude),
+                longitude: parseFloat(animal.longitude),
+                speed: parseFloat(animal.speed) || 0
+            }));
+            console.log('Processed data:', data);
+        }
+
+        // Store animal data for movement simulation
+        animalData = [...data]; // Create a copy for simulation
+        
+        // Update markers
+        const bounds = [];
+        console.log('Processing', data.length, 'animals for map markers');
+        
+        data.forEach((animal, index) => {
+            console.log(`Processing animal ${index + 1}:`, animal);
+            try {
+                updateMarker(animal);
+                if (typeof animal.latitude === 'number' && typeof animal.longitude === 'number') {
+                    bounds.push([animal.latitude, animal.longitude]);
+                } else {
+                    console.warn('Invalid coordinates for animal:', animal.animal_name, animal.latitude, animal.longitude);
+                }
+            } catch (markerError) {
+                console.error('Error updating marker for animal:', animal.animal_name, markerError);
+            }
+        });
+
+        // Fit map to show all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // Update status
+        document.getElementById('lastUpdate').textContent = `Last Update: ${new Date().toLocaleString()}`;
+        document.getElementById('animalCount').textContent = `${data.length} animals tracked`;
+
+        // Start live movement simulation for non-mock data
+        if (!useMock) {
+            startLiveMovement();
+        } else {
+            stopLiveMovement();
+        }
+
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+
+    } catch (err) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        error.textContent = `Failed to load animal locations: ${err.message}`;
+
+        // If not already in mock mode, automatically switch to mock data
+        if (!isMockMode()) {
+            console.warn('Falling back to mock data due to API error.');
+            setMockMode(true);
+            const modeBanner = document.getElementById('modeBanner');
+            if (modeBanner) {
+                modeBanner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+                modeBanner.textContent = 'Live tracking unavailable — showing mock locations.';
+                modeBanner.classList.remove('hidden');
+            }
+            fetchLocations(true);
+        }
+    }
+}
+
+// Mock mode helpers
+function isMockMode() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mock') === '1' || params.get('mock') === 'true') return true;
+    } catch (e) {}
+    return localStorage.getItem('useMock') === '1';
+}
+
+function setMockMode(enabled) {
+    localStorage.setItem('useMock', enabled ? '1' : '0');
+    updateUseMockButton();
+}
+
+function updateUseMockButton() {
+    const useMockBtn = document.getElementById('useMockBtn');
+    useMockBtn.classList.remove('hidden');
+    if (isMockMode()) {
+        useMockBtn.textContent = 'Using Mock Data (click for live)';
+    } else {
+        useMockBtn.textContent = 'Use Mock Data';
+    }
+    useMockBtn.onclick = () => {
+        setMockMode(!isMockMode());
+        fetchLocations(isMockMode());
+    };
+    updateModeBanner();
+}
+
+function updateModeBanner() {
+    const banner = document.getElementById('modeBanner');
+    if (!banner) return;
+    if (isMockMode()) {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        banner.textContent = 'Mock locations active — data is simulated.';
+        banner.classList.remove('hidden');
+    } else {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-green-50 text-green-800';
+        const movementStatus = isLiveMovementActive ? 'with live movement simulation' : 'static positions';
+        banner.textContent = `Live tracking active (connected to database) ${movementStatus}.`;
+        banner.classList.remove('hidden');
+    }
+}
+
+function updateMovementButton() {
+    const btn = document.getElementById('toggleMovementBtn');
+    if (!btn) return;
+    
+    if (isLiveMovementActive) {
+        btn.textContent = 'Live Movement: ON';
+        btn.className = 'px-4 py-2 bg-green-600 text-white rounded text-sm';
+    } else {
+        btn.textContent = 'Live Movement: OFF';
+        btn.className = 'px-4 py-2 bg-red-600 text-white rounded text-sm';
+    }
+}
+
+function getMockData() {
+    // Mock data centered around Los Angeles (matching database coordinates)
+    const baseLocation = [34.0522, -118.2437];
+    const mockAnimals = [
+        {
+            animal_id: 1,
+            animal_name: "Bessie",
+            latitude: baseLocation[0] + 0.02,
+            longitude: baseLocation[1] + 0.015,
+            speed: 2.3,
+            location_status: "normal",
+            location_timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString()
+        },
+        {
+            animal_id: 2,
+            animal_name: "Molly",
+            latitude: baseLocation[0] - 0.015,
+            longitude: baseLocation[1] + 0.02,
+            speed: 0,
+            location_status: "warning",
+            location_timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString()
+        },
+        {
+            animal_id: 3,
+            animal_name: "Luna",
+            latitude: baseLocation[0] + 0.01,
+            longitude: baseLocation[1] - 0.02,
+            speed: 4.1,
+            location_status: "normal",
+            location_timestamp: new Date().toISOString()
+        },
+        {
+            animal_id: 4,
+            animal_name: "Daisy",
+            latitude: baseLocation[0] - 0.02,
+            longitude: baseLocation[1] - 0.01,
+            speed: 0,
+            location_status: "alert",
+            location_timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+        }
+    ];
+    return mockAnimals;
+}
+
+// Wire refresh button
+document.getElementById('refreshBtn').addEventListener('click', () => fetchLocations(isMockMode()));
+
+// Wire movement toggle button
+document.getElementById('toggleMovementBtn').addEventListener('click', () => {
+    if (isLiveMovementActive) {
+        stopLiveMovement();
+    } else {
+        startLiveMovement();
+    }
+    updateMovementButton();
+    updateModeBanner();
+});
+
+// Initialize mock button and banner
+updateUseMockButton();
+updateModeBanner();
+updateMovementButton();
+
+// Initial load with auto-refresh every 30 seconds (but don't refresh if live movement is active)
+fetchLocations(isMockMode());
+setInterval(() => {
+    // Only auto-refresh if live movement is not active to avoid conflicts
+    if (!isLiveMovementActive) {
+        fetchLocations(isMockMode());
+    }
+}, 30000);
+</script>
+
+</body>
+</html>

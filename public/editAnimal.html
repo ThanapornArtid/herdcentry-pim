@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HerdSentry - Edit Animal Profile</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="utils/date_utils.js"></script>
+    <style>
+        /* Apply focus ring color globally */
+        input:focus, select:focus, textarea:focus {
+            --tw-ring-color: #3b82f6; /* blue-500 */
+        }
+        /* Ensure the body font is Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Disable mouse wheel on number inputs */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+<div class="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">
+        ✏️ Edit Animal Profile
+    </h2>
+    <p class="text-center text-sm text-gray-500 mb-6">Editing Profile ID: <span id="animalIdDisplay" class="font-mono font-semibold text-gray-700">Loading...</span></p>
+    
+    <!-- Area for success/error messages -->
+    <div id="messageContainer" class="mb-4 hidden rounded-lg p-3 text-sm font-medium"></div>
+
+    <form id="editAnimalForm" action="" method="PUT">
+
+        <!-- Section 1: Core Animal Details -->
+        <div class="space-y-6">
+
+            <!-- Animal Name / Tag ID -->
+            <div>
+                <label for="animal_name" class="block text-sm font-medium text-gray-700">
+                    Animal Name / Tag ID <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="animal_name" name="animal_name" required maxlength="100" 
+                       placeholder="e.g., T-Rex 42 or Big Bessie"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <!-- Date of Birth -->
+            <div>
+                <label for="birth_date" class="block text-sm font-medium text-gray-700">
+                    Date of Birth 
+                    <span id="birthDateDisplay" class="text-xs text-gray-500 ml-2">(Current: --/--/----)</span>
+                </label>
+                <input type="date" id="birth_date" name="birth_date"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <!-- Weight (kg) -->
+            <div>
+                <label for="weight_kg" class="block text-sm font-medium text-gray-700">
+                    Weight (kg) <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="weight_kg" name="weight_kg" required step="0.01" min="0.01" max="9999.99"
+                       placeholder="Enter weight in kilograms"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            
+            <!-- Gender (ENUM Field - Radio Group) -->
+            <fieldset>
+                <legend class="block text-sm font-medium text-gray-700 mb-2">
+                    Gender <span class="text-red-500">*</span>
+                </legend>
+                <div class="flex flex-wrap gap-4" id="gender_radios">
+                    <!-- Radio buttons will be generated/checked here -->
+                    <div class="flex items-center">
+                        <input id="gender_male" name="gender" type="radio" value="Male" required
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_male" class="ml-2 block text-sm font-medium text-gray-700">Male</label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="gender_female" name="gender" type="radio" value="Female"
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_female" class="ml-2 block text-sm font-medium text-gray-700">Female</label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="gender_unknown" name="gender" type="radio" value="Unknown"
+                               class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <label for="gender_unknown" class="ml-2 block text-sm font-medium text-gray-700">Unknown</label>
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-gray-200 space-y-6">
+
+            <!-- Species (Foreign Key Lookup) -->
+            <div>
+                <label for="species_id" class="block text-sm font-medium text-gray-700">
+                    Species <span class="text-red-500">*</span>
+                </label>
+                
+                <select id="species_id" name="species_id" required
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
+                    <option value="" disabled selected>Loading Species...</option>
+                </select>
+            </div>
+            
+            <!-- Current Diet (Foreign Key Lookup) -->
+            <div>
+                <label for="current_diet_id" class="block text-sm font-medium text-gray-700">
+                    Current Diet (Optional)
+                </label>
+                
+                <select id="current_diet_id" name="current_diet_id"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg">
+                    <option value="">Loading Diets...</option>
+                </select>
+            </div>
+            
+             <p class="text-sm text-gray-500 italic pt-2">
+                Note: To change Species or Diet, select an option above. Use the <a href="add_animal_form.html" class="text-blue-600 hover:text-blue-800 underline">Add New</a> page to define new Species or Diets.
+            </p>
+
+        </div>
+
+        <!-- Submission Button -->
+        <div class="pt-5">
+            <button type="submit" id="submitButton"
+                    class="w-full justify-center rounded-lg border border-transparent bg-blue-600 py-3 px-4 text-lg font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+                Save Changes
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // =========================================================
+    // CONFIGURATION - FETCHING ID FROM URL
+    // =========================================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const ANIMAL_ID_TO_EDIT = urlParams.get('id');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!ANIMAL_ID_TO_EDIT) {
+            displayMessage('Error: No Animal ID provided in the URL for editing. Please use a link like: /edit_animal_profile.html?id=101', false);
+            return;
+        }
+        initEditPage(ANIMAL_ID_TO_EDIT);
+    });
+
+    // Global state variables for data population
+    let allSpecies = [];
+    let allDiets = [];
+    let currentAnimalData = {};
+
+
+    async function initEditPage(animalId) {
+        document.getElementById('animalIdDisplay').textContent = animalId;
+
+        // Fetch required lookup data (Species and Diets)
+        const [speciesResult, dietsResult] = await Promise.all([
+            fetchSpeciesAndPopulate(),
+            fetchDietsAndPopulate()
+        ]);
+        
+        // Fetch the specific animal data
+        await fetchAnimalData(animalId);
+
+        // Populate the form with the fetched animal data
+        if (currentAnimalData.animal_id) {
+            populateEditForm(currentAnimalData);
+            document.getElementById('editAnimalForm').addEventListener('submit', (e) => handleFormUpdate(e, animalId));
+        }
+    }
+
+
+    // =========================================================
+    // DATA FETCHING & POPULATION
+    // =========================================================
+
+    async function fetchAnimalData(animalId) {
+        const apiEndpoint = `/api/animals/${animalId}`; 
+        displayMessage('Fetching animal profile...', true);
+
+        try {
+            const response = await fetch(apiEndpoint);
+            const result = await response.json();
+
+            if (!response.ok) {
+                displayMessage(`Error: ${result.message || 'Could not load animal profile.'}`, false);
+                return;
+            }
+
+            currentAnimalData = result;
+            displayMessage(`Profile for ${result.animal_name} loaded.`, true);
+
+        } catch (error) {
+            console.error('Error fetching animal data:', error);
+            displayMessage('A network error occurred while fetching animal data.', false);
+        }
+    }
+
+    function populateEditForm(data) {
+        document.getElementById('animal_name').value = data.animal_name || '';
+        document.getElementById('weight_kg').value = data.weight_kg || '';
+        document.getElementById('birth_date').value = data.birth_date || ''; 
+        
+        // Custom date display using the new utility function (assumes it is loaded via <script>)
+        const formattedDate = (typeof formatDateToDDMMYYYY === 'function') ? formatDateToDDMMYYYY(data.birth_date) : '--/--/----';
+
+        document.getElementById('birthDateDisplay').textContent = `(Current: ${formattedDate || '--/--/----'})`;
+
+        // Gender radio button
+        const genderRadios = document.getElementsByName('gender');
+        genderRadios.forEach(radio => {
+            if (radio.value === data.gender) {
+                radio.checked = true;
+            }
+        });
+
+        // Species and Diet selects - These are now set *after* all options are loaded by populateSelect
+        document.getElementById('species_id').value = data.species_id || '';
+        document.getElementById('current_diet_id').value = data.current_diet_id || '';
+    }
+
+    // Reuse existing fetch logic from the add page
+    async function fetchSpeciesAndPopulate() {
+        const apiEndpoint = '/api/species'; 
+        const mockSpeciesData = [
+            { species_id: '99', species_name: 'Mock Cattle' },
+            { species_id: '98', species_name: 'Mock Sheep' },
+            { species_id: '97', species_name: 'Mock Goat' },
+        ];
+        let speciesData = [];
+        let errorOccurred = false;
+
+        try {
+            const response = await fetch(apiEndpoint);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            try {
+                speciesData = await response.json();
+            } catch (e) {
+                errorOccurred = true;
+                speciesData = mockSpeciesData;
+            }
+        } catch (error) {
+            errorOccurred = true;
+            speciesData = mockSpeciesData;
+        }
+        allSpecies = speciesData;
+        populateSelect('species_id', allSpecies, errorOccurred ? "⚠️ Load Failed (Mock Data)" : "Select an Animal Species");
+    }
+
+    async function fetchDietsAndPopulate() {
+        const apiEndpoint = '/api/diets'; 
+        const mockDietsData = [
+            { diet_id: '201', diet_name: 'Standard Maintenance Ration (Mock)' },
+            { diet_id: '202', diet_name: 'High-Energy Production (Mock)' },
+        ];
+        let dietsData = [];
+        let errorOccurred = false;
+
+        try {
+            const response = await fetch(apiEndpoint);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            try {
+                dietsData = await response.json();
+            } catch (e) {
+                errorOccurred = true;
+                dietsData = mockDietsData;
+            }
+        } catch (error) {
+            errorOccurred = true;
+            dietsData = mockDietsData;
+        }
+        allDiets = dietsData;
+        populateSelect('current_diet_id', allDiets, errorOccurred ? "⚠️ Load Failed (Mock Data)" : "No Diet Assigned Yet (Optional)");
+    }
+    
+    // =========================================================
+    // CORE SUBMISSION LOGIC (UPDATE)
+    // =========================================================
+
+    async function handleFormUpdate(event, animalId) {
+        event.preventDefault();
+
+        const form = document.getElementById('editAnimalForm');
+        const submitButton = document.getElementById('submitButton');
+        const messageContainer = document.getElementById('messageContainer');
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Saving Changes...';
+        messageContainer.classList.add('hidden');
+
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            data[key] = value === '' ? null : value;
+        }
+        
+        // Ensure weight is float
+        if (data.weight_kg) {
+            data.weight_kg = parseFloat(data.weight_kg);
+        }
+
+        const endpoint = `/api/animals/${animalId}`; 
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'PUT', // Use PUT for update
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                displayMessage(result.message, true);
+                
+                // Re-fetch and re-populate to confirm changes were saved (optional, but good practice)
+                await fetchAnimalData(animalId);
+                populateEditForm(currentAnimalData);
+            } else {
+                const errorMessage = result.message || 'An unknown error occurred on the server during update.';
+                displayMessage(`Error updating animal: ${errorMessage}`, false);
+            }
+        } catch (error) {
+            console.error('Network or unexpected error during animal update:', error);
+            displayMessage('A network error occurred. Could not connect to the server.', false);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Save Changes';
+        }
+    }
+
+
+    // =========================================================
+    // UTILITY FUNCTIONS (SHARED)
+    // =========================================================
+
+    function displayMessage(message, isSuccess = true) {
+        const msgContainer = document.getElementById('messageContainer');
+        msgContainer.textContent = message;
+        
+        msgContainer.className = 'mb-4 rounded-lg p-3 text-sm font-medium';
+        
+        if (isSuccess) {
+            msgContainer.classList.add('bg-green-100', 'text-green-800');
+        } else {
+            msgContainer.classList.add('bg-red-100', 'text-red-800');
+        }
+        msgContainer.classList.remove('hidden');
+    }
+
+    /**
+     * Utility function to populate a select element.
+     * IMPORTANT: The logic to restore currentSelection has been removed 
+     * to prevent overriding the animal data selection.
+     */
+    function populateSelectElement(selectElement, data, defaultValueText, idKey, nameKey) {
+        if (!selectElement) return;
+
+        // Note: We deliberately do NOT try to capture/restore a selection here.
+        selectElement.innerHTML = ''; 
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = defaultValueText;
+        selectElement.appendChild(defaultOption);
+
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item[idKey];
+            option.textContent = item[nameKey];
+            selectElement.appendChild(option);
+        });
+
+        // We rely on populateEditForm to set the final value AFTER options are loaded.
+    }
+
+    function populateSelect(selectId, data, defaultValueText) {
+        const selectElement = document.getElementById(selectId);
+        if (!selectElement) return;
+
+        if (selectId === 'species_id') {
+            populateSelectElement(selectElement, data, defaultValueText, 'species_id', 'species_name');
+        } else if (selectId === 'current_diet_id') {
+            populateSelectElement(selectElement, data, defaultValueText, 'diet_id', 'diet_name');
+        }
+    }
+</script>
+</body>
+</html>

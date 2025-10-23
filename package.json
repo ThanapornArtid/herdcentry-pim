@@ -1,0 +1,30 @@
+{
+  "name": "herdsentry",
+  "version": "1.0.0",
+  "description": "HELP...",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pundharee6688091/HerdSentry.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Pundharee6688091/HerdSentry/issues"
+  },
+  "homepage": "https://github.com/Pundharee6688091/HerdSentry#readme",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mysql2": "^3.15.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.10"
+  }
+}

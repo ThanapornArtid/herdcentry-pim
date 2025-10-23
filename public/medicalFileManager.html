@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HerdSentry - Medical File Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">📁 Medical File Manager</h1>
+        <div class="flex gap-2">
+            <a href="medical.html" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                Back to Medical Records
+            </a>
+            <a href="newAnimal.html" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                Add New Animal
+            </a>
+        </div>
+    </div>
+
+    <div id="modeBanner" class="hidden p-3 rounded mb-4 text-sm"></div>
+    <div id="loading" class="p-4 rounded-md bg-blue-50 text-blue-800 mb-4">Loading animals...</div>
+    <div id="error" class="hidden p-4 rounded-md bg-red-50 text-red-800 mb-4"></div>
+
+    <!-- Animal Selector -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+        <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <div class="flex-1">
+                <label for="animalSelect" class="block text-sm font-medium text-gray-700 mb-2">Select Animal</label>
+                <select id="animalSelect" class="w-full p-2 border rounded" disabled>
+                    <option value="">Loading animals...</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Refresh</button>
+                <button id="useMockBtn" class="px-4 py-2 bg-gray-600 text-white rounded text-sm">Use Mock Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="content" class="hidden space-y-6">
+        <!-- File Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Files</p>
+                        <p id="totalFiles" class="text-2xl font-bold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Images</p>
+                        <p id="imageFiles" class="text-2xl font-bold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-red-100 rounded">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Documents</p>
+                        <p id="docFiles" class="text-2xl font-bold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Size</p>
+                        <p id="totalSize" class="text-2xl font-bold text-gray-900">0 MB</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Filters -->
+        <div class="bg-white p-4 rounded shadow">
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+                <div class="flex-1">
+                    <input type="text" id="searchInput" placeholder="Search files by name, type, or notes..." 
+                           class="w-full p-2 border rounded">
+                </div>
+                <div class="flex gap-2">
+                    <select id="typeFilter" class="p-2 border rounded">
+                        <option value="">All Types</option>
+                        <option value="image">Images</option>
+                        <option value="pdf">PDFs</option>
+                        <option value="document">Documents</option>
+                        <option value="text">Text Files</option>
+                    </select>
+                    <select id="linkFilter" class="p-2 border rounded">
+                        <option value="">All Files</option>
+                        <option value="exam">Linked to Exams</option>
+                        <option value="result">Linked to Results</option>
+                        <option value="general">General Files</option>
+                    </select>
+                    <button id="clearFilters" class="px-4 py-2 bg-gray-600 text-white rounded text-sm">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File List -->
+        <div class="bg-white rounded shadow">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-semibold">Medical Files</h2>
+                <div class="flex gap-2">
+                    <button id="listViewBtn" class="px-3 py-1 bg-blue-600 text-white rounded text-sm">List View</button>
+                    <button id="gridViewBtn" class="px-3 py-1 bg-gray-600 text-white rounded text-sm">Grid View</button>
+                </div>
+            </div>
+            
+            <!-- List View -->
+            <div id="listView" class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Linked To</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Files will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Grid View -->
+            <div id="gridView" class="hidden p-4">
+                <div id="fileGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <!-- Files will be populated here -->
+                </div>
+            </div>
+            
+            <div id="noFiles" class="hidden p-8 text-center text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <p class="mt-2">No medical files found for this animal.</p>
+                <p class="text-sm text-gray-400">Upload files from the Medical Records page.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// State
+let selectedAnimalId = null;
+let allFiles = [];
+let currentView = 'list';
+
+// Fetch animals for the selector
+async function fetchAnimals(useMock = false) {
+    try {
+        let animals;
+        if (useMock) {
+            animals = getMockAnimals();
+        } else {
+            const res = await fetch('/api/animals');
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            animals = await res.json();
+        }
+
+        const select = document.getElementById('animalSelect');
+        select.innerHTML = '<option value="">Select an animal...</option>';
+        animals.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.animal_id;
+            opt.textContent = `${a.animal_name} (ID: ${a.animal_id})`;
+            select.appendChild(opt);
+        });
+        select.disabled = false;
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+
+    } catch (err) {
+        handleError(err);
+    }
+}
+
+// Fetch and display medical files
+async function fetchMedicalFiles(animalId, useMock = false) {
+    if (!animalId) return;
+
+    try {
+        let files;
+        if (useMock) {
+            files = getMockMedicalFiles(animalId);
+        } else {
+            const res = await fetch(`/api/animals/${animalId}/medical/files`);
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            files = await res.json();
+        }
+
+        allFiles = files;
+        updateStatistics(files);
+        displayFiles(files, useMock);
+    } catch (err) {
+        console.error('Error fetching medical files:', err);
+        showError(`Error fetching files: ${err.message}`);
+    }
+}
+
+// Update file statistics
+function updateStatistics(files) {
+    const totalFiles = files.length;
+    const imageFiles = files.filter(f => f.mime_type && f.mime_type.startsWith('image/')).length;
+    const docFiles = files.filter(f => f.mime_type && (f.mime_type.includes('pdf') || f.mime_type.includes('word') || f.mime_type.includes('text'))).length;
+    const totalSize = files.reduce((sum, f) => sum + (f.file_size_bytes || 0), 0);
+
+    document.getElementById('totalFiles').textContent = totalFiles;
+    document.getElementById('imageFiles').textContent = imageFiles;
+    document.getElementById('docFiles').textContent = docFiles;
+    document.getElementById('totalSize').textContent = formatFileSize(totalSize);
+}
+
+// Display files in current view
+function displayFiles(files, useMock = false) {
+    if (files.length === 0) {
+        document.getElementById('listView').classList.add('hidden');
+        document.getElementById('gridView').classList.add('hidden');
+        document.getElementById('noFiles').classList.remove('hidden');
+        return;
+    }
+
+    document.getElementById('noFiles').classList.add('hidden');
+    
+    if (currentView === 'list') {
+        displayListView(files, useMock);
+        document.getElementById('listView').classList.remove('hidden');
+        document.getElementById('gridView').classList.add('hidden');
+    } else {
+        displayGridView(files, useMock);
+        document.getElementById('gridView').classList.remove('hidden');
+        document.getElementById('listView').classList.add('hidden');
+    }
+}
+
+// Display files in list view
+function displayListView(files, useMock = false) {
+    const tbody = document.getElementById('fileTableBody');
+    tbody.innerHTML = '';
+
+    files.forEach(file => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const icon = getFileIcon(file.mime_type);
+        const linkedTo = file.exam_date ? `Exam (${formatDateTime(file.exam_date)})` : 
+                        file.test_name ? `Test: ${file.test_name}` : 'General';
+
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-3">${icon}</span>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">${escapeHtml(file.original_filename)}</div>
+                        ${file.notes ? `<div class="text-xs text-gray-500">${escapeHtml(file.notes)}</div>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${getFileTypeLabel(file.mime_type)}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${formatFileSize(file.file_size_bytes)}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${linkedTo}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <div>${formatDateTime(file.uploaded_at)}</div>
+                ${file.uploaded_by ? `<div class="text-xs">by ${escapeHtml(file.uploaded_by)}</div>` : ''}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button onclick="downloadFile(${file.file_id}, '${escapeHtml(file.original_filename)}', ${useMock})" 
+                        class="text-blue-600 hover:text-blue-900 mr-3">Download</button>
+                <button onclick="viewFileDetails(${JSON.stringify(file).replace(/"/g, '&quot;')})" 
+                        class="text-green-600 hover:text-green-900">Details</button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+// Display files in grid view
+function displayGridView(files, useMock = false) {
+    const grid = document.getElementById('fileGrid');
+    grid.innerHTML = '';
+
+    files.forEach(file => {
+        const fileCard = document.createElement('div');
+        fileCard.className = 'border rounded-lg p-4 hover:shadow-md transition-shadow';
+        
+        const icon = getFileIcon(file.mime_type);
+        const linkedTo = file.exam_date ? `Exam (${formatDateTime(file.exam_date)})` : 
+                        file.test_name ? `Test: ${file.test_name}` : 'General';
+
+        fileCard.innerHTML = `
+            <div class="flex items-center space-x-3 mb-3">
+                <span class="text-3xl">${icon}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">${escapeHtml(file.original_filename)}</p>
+                    <p class="text-xs text-gray-500">${formatFileSize(file.file_size_bytes)}</p>
+                </div>
+            </div>
+            
+            <div class="space-y-1 text-xs text-gray-600 mb-3">
+                <p><strong>Type:</strong> ${getFileTypeLabel(file.mime_type)}</p>
+                <p><strong>Linked to:</strong> ${linkedTo}</p>
+                <p><strong>Uploaded:</strong> ${formatDateTime(file.uploaded_at)}</p>
+                ${file.uploaded_by ? `<p><strong>By:</strong> ${escapeHtml(file.uploaded_by)}</p>` : ''}
+                ${file.notes ? `<p><strong>Notes:</strong> ${escapeHtml(file.notes)}</p>` : ''}
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="downloadFile(${file.file_id}, '${escapeHtml(file.original_filename)}', ${useMock})" 
+                        class="flex-1 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                    Download
+                </button>
+                <button onclick="viewFileDetails(${JSON.stringify(file).replace(/"/g, '&quot;')})" 
+                        class="flex-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                    Details
+                </button>
+            </div>
+        `;
+
+        grid.appendChild(fileCard);
+    });
+}
+
+// Filter files based on search and filters
+function filterFiles() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const linkFilter = document.getElementById('linkFilter').value;
+
+    let filteredFiles = allFiles.filter(file => {
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            file.original_filename.toLowerCase().includes(searchTerm) ||
+            (file.notes && file.notes.toLowerCase().includes(searchTerm)) ||
+            (file.uploaded_by && file.uploaded_by.toLowerCase().includes(searchTerm));
+
+        // Type filter
+        const matchesType = !typeFilter || 
+            (typeFilter === 'image' && file.mime_type && file.mime_type.startsWith('image/')) ||
+            (typeFilter === 'pdf' && file.mime_type && file.mime_type.includes('pdf')) ||
+            (typeFilter === 'document' && file.mime_type && file.mime_type.includes('word')) ||
+            (typeFilter === 'text' && file.mime_type && file.mime_type.includes('text'));
+
+        // Link filter
+        const matchesLink = !linkFilter ||
+            (linkFilter === 'exam' && file.exam_id) ||
+            (linkFilter === 'result' && file.result_id) ||
+            (linkFilter === 'general' && !file.exam_id && !file.result_id);
+
+        return matchesSearch && matchesType && matchesLink;
+    });
+
+    displayFiles(filteredFiles, isMockMode());
+}
+
+// View file details in modal (simplified version)
+function viewFileDetails(file) {
+    const linkedTo = file.exam_date ? `Exam on ${formatDateTime(file.exam_date)} with ${file.veterinarian || 'Unknown vet'}` : 
+                    file.test_name ? `Diagnostic test: ${file.test_name} on ${formatDateTime(file.test_date)}` : 
+                    'General file (not linked to specific exam or test)';
+
+    const details = `
+File: ${file.original_filename}
+Type: ${getFileTypeLabel(file.mime_type)}
+Size: ${formatFileSize(file.file_size_bytes)}
+Uploaded: ${formatDateTime(file.uploaded_at)}
+${file.uploaded_by ? `Uploaded by: ${file.uploaded_by}` : ''}
+Linked to: ${linkedTo}
+${file.notes ? `Notes: ${file.notes}` : 'No notes'}
+    `.trim();
+
+    alert(details);
+}
+
+// Utility Functions
+function getFileIcon(mimeType) {
+    if (!mimeType) return '📎';
+    if (mimeType.startsWith('image/')) return '🖼️';
+    if (mimeType === 'application/pdf') return '📄';
+    if (mimeType.includes('word')) return '📝';
+    if (mimeType.includes('text')) return '📃';
+    return '📎';
+}
+
+function getFileTypeLabel(mimeType) {
+    if (!mimeType) return 'Unknown';
+    if (mimeType.startsWith('image/')) return 'Image';
+    if (mimeType === 'application/pdf') return 'PDF';
+    if (mimeType.includes('word')) return 'Word Document';
+    if (mimeType.includes('text')) return 'Text File';
+    return 'Document';
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDateTime(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString();
+}
+
+function escapeHtml(s) {
+    if (!s && s !== 0) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
+// Download file
+async function downloadFile(fileId, filename, useMock = false) {
+    try {
+        if (useMock) {
+            console.log(`Mock mode: Would download file ${fileId} (${filename})`);
+            showError('Mock mode: Download functionality not available');
+            return;
+        }
+
+        const response = await fetch(`/api/medical/files/${fileId}/download`);
+        if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Download error:', err);
+        showError(`Download failed: ${err.message}`);
+    }
+}
+
+function showError(message) {
+    const error = document.getElementById('error');
+    error.textContent = message;
+    error.classList.remove('hidden');
+    setTimeout(() => error.classList.add('hidden'), 5000);
+}
+
+function handleError(err) {
+    console.error(err);
+    showError(err.message);
+    
+    // If not in mock mode, offer mock data
+    if (!isMockMode()) {
+        console.warn('Falling back to mock data due to API error');
+        setMockMode(true);
+        const modeBanner = document.getElementById('modeBanner');
+        modeBanner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        modeBanner.textContent = 'Live data unavailable — showing mock data';
+        modeBanner.classList.remove('hidden');
+        
+        // Reload with mock data
+        fetchAnimals(true);
+        if (selectedAnimalId) {
+            fetchMedicalFiles(selectedAnimalId, true);
+        }
+    }
+}
+
+// Mock Data
+function getMockAnimals() {
+    return [
+        { animal_id: 1, animal_name: "Bessie" },
+        { animal_id: 2, animal_name: "Molly" },
+        { animal_id: 3, animal_name: "Luna" },
+        { animal_id: 4, animal_name: "Daisy" }
+    ];
+}
+
+function getMockMedicalFiles(animalId) {
+    const now = new Date();
+    const yesterday = new Date(now - 24*60*60*1000);
+    const lastWeek = new Date(now - 7*24*60*60*1000);
+    
+    return [
+        {
+            file_id: 1,
+            animal_id: animalId,
+            exam_id: 1,
+            result_id: null,
+            original_filename: "xray-chest-2025-10-23.jpg",
+            storage_filename: "1729680000000-xray-chest-2025-10-23.jpg",
+            mime_type: "image/jpeg",
+            file_size_bytes: 2547821,
+            uploaded_at: now.toISOString(),
+            uploaded_by: "Dr. Smith",
+            notes: "Chest X-ray from annual checkup",
+            exam_date: now.toISOString(),
+            veterinarian: "Dr. Smith",
+            test_name: null,
+            test_date: null
+        },
+        {
+            file_id: 2,
+            animal_id: animalId,
+            exam_id: null,
+            result_id: 1,
+            original_filename: "blood-test-results.pdf",
+            storage_filename: "1729680000000-blood-test-results.pdf",
+            mime_type: "application/pdf",
+            file_size_bytes: 156789,
+            uploaded_at: yesterday.toISOString(),
+            uploaded_by: "Lab Tech",
+            notes: "Complete blood panel results",
+            exam_date: null,
+            veterinarian: null,
+            test_name: "Blood Glucose",
+            test_date: now.toISOString()
+        },
+        {
+            file_id: 3,
+            animal_id: animalId,
+            exam_id: null,
+            result_id: null,
+            original_filename: "vaccination-record.png",
+            storage_filename: "1729680000000-vaccination-record.png",
+            mime_type: "image/png",
+            file_size_bytes: 892341,
+            uploaded_at: lastWeek.toISOString(),
+            uploaded_by: "Dr. Jones",
+            notes: "Updated vaccination certificate",
+            exam_date: null,
+            veterinarian: null,
+            test_name: null,
+            test_date: null
+        },
+        {
+            file_id: 4,
+            animal_id: animalId,
+            exam_id: 2,
+            result_id: null,
+            original_filename: "physical-exam-notes.txt",
+            storage_filename: "1729680000000-physical-exam-notes.txt",
+            mime_type: "text/plain",
+            file_size_bytes: 4562,
+            uploaded_at: lastWeek.toISOString(),
+            uploaded_by: "Dr. Jones",
+            notes: "Detailed physical examination notes",
+            exam_date: lastWeek.toISOString(),
+            veterinarian: "Dr. Jones",
+            test_name: null,
+            test_date: null
+        },
+        {
+            file_id: 5,
+            animal_id: animalId,
+            exam_id: null,
+            result_id: 3,
+            original_filename: "urinalysis-report.pdf",
+            storage_filename: "1729680000000-urinalysis-report.pdf",
+            mime_type: "application/pdf",
+            file_size_bytes: 287654,
+            uploaded_at: yesterday.toISOString(),
+            uploaded_by: "Lab Tech",
+            notes: "Comprehensive urinalysis with microscopy",
+            exam_date: null,
+            veterinarian: null,
+            test_name: "Ketones",
+            test_date: lastWeek.toISOString()
+        }
+    ];
+}
+
+// Mock Mode Helpers
+function isMockMode() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mock') === '1' || params.get('mock') === 'true') return true;
+    } catch (e) {}
+    return localStorage.getItem('useMock') === '1';
+}
+
+function setMockMode(enabled) {
+    localStorage.setItem('useMock', enabled ? '1' : '0');
+    updateUseMockButton();
+}
+
+function updateUseMockButton() {
+    const useMockBtn = document.getElementById('useMockBtn');
+    if (isMockMode()) {
+        useMockBtn.textContent = 'Using Mock Data (click for live)';
+        useMockBtn.className = 'px-4 py-2 bg-yellow-600 text-white rounded text-sm';
+    } else {
+        useMockBtn.textContent = 'Use Mock Data';
+        useMockBtn.className = 'px-4 py-2 bg-gray-600 text-white rounded text-sm';
+    }
+    useMockBtn.onclick = () => {
+        setMockMode(!isMockMode());
+        fetchAnimals(isMockMode());
+        if (selectedAnimalId) {
+            fetchMedicalFiles(selectedAnimalId, isMockMode());
+        }
+    };
+    updateModeBanner();
+}
+
+function updateModeBanner() {
+    const banner = document.getElementById('modeBanner');
+    if (!banner) return;
+    if (isMockMode()) {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        banner.textContent = 'Mock file data active — files are simulated';
+        banner.classList.remove('hidden');
+    } else {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-green-50 text-green-800';
+        banner.textContent = 'Live file data (connected to database)';
+        banner.classList.remove('hidden');
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Wire animal selector
+    document.getElementById('animalSelect').addEventListener('change', (e) => {
+        selectedAnimalId = e.target.value;
+        if (selectedAnimalId) {
+            fetchMedicalFiles(selectedAnimalId, isMockMode());
+        } else {
+            allFiles = [];
+            updateStatistics([]);
+            displayFiles([], isMockMode());
+        }
+    });
+
+    // Wire refresh button
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        if (selectedAnimalId) {
+            fetchMedicalFiles(selectedAnimalId, isMockMode());
+        }
+    });
+
+    // Wire view toggle buttons
+    document.getElementById('listViewBtn').addEventListener('click', () => {
+        currentView = 'list';
+        document.getElementById('listViewBtn').className = 'px-3 py-1 bg-blue-600 text-white rounded text-sm';
+        document.getElementById('gridViewBtn').className = 'px-3 py-1 bg-gray-600 text-white rounded text-sm';
+        displayFiles(allFiles, isMockMode());
+    });
+
+    document.getElementById('gridViewBtn').addEventListener('click', () => {
+        currentView = 'grid';
+        document.getElementById('gridViewBtn').className = 'px-3 py-1 bg-blue-600 text-white rounded text-sm';
+        document.getElementById('listViewBtn').className = 'px-3 py-1 bg-gray-600 text-white rounded text-sm';
+        displayFiles(allFiles, isMockMode());
+    });
+
+    // Wire filters
+    document.getElementById('searchInput').addEventListener('input', filterFiles);
+    document.getElementById('typeFilter').addEventListener('change', filterFiles);
+    document.getElementById('linkFilter').addEventListener('change', filterFiles);
+    
+    document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('linkFilter').value = '';
+        filterFiles();
+    });
+
+    // Initialize mock button and banner
+    updateUseMockButton();
+    updateModeBanner();
+
+    // Initial load
+    fetchAnimals(isMockMode());
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HerdSentry - Daily Feed Cost</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-6xl mx-auto">
+    <div class="flex items-center mb-4">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-12 w-auto mr-3">
+        <h1 class="text-3xl font-bold">Daily Feed Cost</h1>
+    </div>
+
+    <div id="modeBanner" class="hidden p-3 rounded mb-4 text-sm"></div>
+
+    <div id="loading" class="p-4 rounded-md bg-blue-50 text-blue-800 mb-4">Loading daily feed cost...</div>
+    <div id="error" class="hidden p-4 rounded-md bg-red-50 text-red-800 mb-4"></div>
+
+    <div id="summary" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-4 rounded shadow">
+            <p class="text-sm text-gray-600">Total Cost Per Day</p>
+            <p id="totalCost" class="text-2xl font-bold text-green-600">$0.00</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+            <p class="text-sm text-gray-600">Animals Counted</p>
+            <p id="animalCount" class="text-2xl font-bold">0</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+            <p class="text-sm text-gray-600">Unique Feeds Used</p>
+            <p id="feedCount" class="text-2xl font-bold">0</p>
+        </div>
+    </div>
+
+    <div id="content" class="hidden space-y-6">
+        <section class="bg-white p-4 rounded shadow">
+            <h2 class="font-semibold mb-3">Per-Animal Daily Cost</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2">Animal</th>
+                            <th class="px-3 py-2">Diet</th>
+                            <th class="px-3 py-2">Daily kg</th>
+                            <th class="px-3 py-2">Cost/day</th>
+                            <th class="px-3 py-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="perAnimalBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="bg-white p-4 rounded shadow">
+            <h2 class="font-semibold mb-3">Per-Feed Aggregated Daily Cost</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2">Feed</th>
+                            <th class="px-3 py-2">Total kg/day</th>
+                            <th class="px-3 py-2">Cost/day</th>
+                        </tr>
+                    </thead>
+                    <tbody id="perFeedBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="flex gap-2">
+            <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Refresh</button>
+            <button id="exportCsvBtn" class="px-4 py-2 bg-green-600 text-white rounded">Export CSV</button>
+            <button id="useMockBtn" class="px-4 py-2 bg-gray-600 text-white rounded">Use Mock Data</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchDailyFeedCost(useMock = false) {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const summary = document.getElementById('summary');
+    const content = document.getElementById('content');
+
+    loading.classList.remove('hidden');
+    loading.textContent = 'Loading daily feed cost...';
+    error.classList.add('hidden');
+    summary.classList.add('hidden');
+    content.classList.add('hidden');
+
+    try {
+        let data;
+        if (useMock) {
+            data = getMockData();
+        } else {
+            const res = await fetch('/api/reports/daily-feed-cost');
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            data = await res.json();
+        }
+
+        // Populate UI
+        document.getElementById('totalCost').textContent = `$${(data.totalCostPerDay || 0).toFixed(2)}`;
+        document.getElementById('animalCount').textContent = (data.perAnimal || []).length;
+        document.getElementById('feedCount').textContent = (data.perFeed || []).length;
+
+        // Per-Animal table
+        const perAnimalBody = document.getElementById('perAnimalBody');
+        perAnimalBody.innerHTML = '';
+        
+        // --- START OF FIX ---
+        // Create elements programmatically to safely attach event listeners
+        (data.perAnimal || []).forEach(a => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b'; // Example: add styling if needed
+
+            const tdAnimal = document.createElement('td');
+            tdAnimal.className = 'px-3 py-2';
+            tdAnimal.textContent = a.animal_name || ''; // Use .textContent for safety
+            tr.appendChild(tdAnimal);
+
+            const tdDiet = document.createElement('td');
+            tdDiet.className = 'px-3 py-2';
+            tdDiet.textContent = a.diet_name || '—';
+            tr.appendChild(tdDiet);
+
+            const tdKg = document.createElement('td');
+            tdKg.className = 'px-3 py-2';
+            tdKg.textContent = a.daily_kg.toFixed(3);
+            tr.appendChild(tdKg);
+
+            const tdCost = document.createElement('td');
+            tdCost.className = 'px-3 py-2';
+            tdCost.textContent = `$${(a.total_cost_per_day || 0).toFixed(4)}`;
+            tr.appendChild(tdCost);
+
+            const tdDetails = document.createElement('td');
+            tdDetails.className = 'px-3 py-2';
+            const button = document.createElement('button');
+            button.className = 'text-sm text-blue-600';
+            button.textContent = 'View';
+            // Safely attach the event listener using a closure
+            button.addEventListener('click', () => showDetails(a)); 
+            tdDetails.appendChild(button);
+            tr.appendChild(tdDetails);
+
+            perAnimalBody.appendChild(tr);
+        });
+        // --- END OF FIX ---
+
+        // Per-Feed table (this was already fine)
+        const perFeedBody = document.getElementById('perFeedBody');
+        perFeedBody.innerHTML = '';
+        (data.perFeed || []).forEach(f => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-3 py-2">${escapeHtml(f.feed_name)}</td>
+                <td class="px-3 py-2">${f.kg_per_day.toFixed(4)}</td>
+                <td class="px-3 py-2">$${f.cost_per_day.toFixed(4)}</td>
+            `;
+            perFeedBody.appendChild(tr);
+        });
+
+        loading.classList.add('hidden');
+        summary.classList.remove('hidden');
+        content.classList.remove('hidden');
+
+        // wire export
+        document.getElementById('exportCsvBtn').onclick = () => exportCsv(data);
+
+    } catch (err) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        error.textContent = `Failed to load daily feed cost: ${err.message}`;
+
+        // Offer mock data fallback button
+        const useMockBtn = document.getElementById('useMockBtn');
+        useMockBtn.classList.remove('hidden');
+        useMockBtn.onclick = () => {
+            useMockBtn.classList.add('hidden');
+            fetchDailyFeedCost(true);
+        };
+        // If not already in mock mode, automatically switch to mock mode and reload once
+        if (!isMockMode()) {
+            console.warn('Falling back to mock data due to API error.');
+            setMockMode(true);
+            const modeBanner = document.getElementById('modeBanner');
+            if (modeBanner) {
+                modeBanner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+                modeBanner.textContent = 'Live data is unavailable — showing mock data.';
+                modeBanner.classList.remove('hidden');
+            }
+            // Load mock data once
+            fetchDailyFeedCost(true);
+        }
+    }
+}
+
+function escapeHtml(s) {
+    if (!s && s !== 0) return '';
+    return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function showDetails(animal) {
+    // Show simple modal-like alert for now
+    const lines = [];
+    lines.push(`Animal: ${animal.animal_name}`);
+    lines.push(`Diet: ${animal.diet_name}`);
+    lines.push(`Daily kg: ${Number(animal.daily_kg).toFixed(4)} (basis: ${animal.daily_kg_basis || 'unknown'})`);
+    lines.push(`Total cost/day: $${Number(animal.total_cost_per_day).toFixed(4)}`);
+    lines.push('\nComponents:');
+    (animal.feed_components || []).forEach(c => { // Added default empty array
+        lines.push(` - ${c.feed_name}: ${Number(c.kg_per_day).toFixed(4)} kg/day, $${Number(c.cost_per_day).toFixed(4)}`);
+    });
+    alert(lines.join('\n'));
+}
+
+function exportCsv(data) {
+    const rows = [];
+    rows.push(['Per-Animal Daily Cost']);
+    rows.push(['Animal','Diet','Daily kg','Cost/day']);
+    (data.perAnimal||[]).forEach(a => rows.push([a.animal_name, a.diet_name, a.daily_kg, a.total_cost_per_day]));
+    rows.push([]);
+    rows.push(['Per-Feed Daily Cost']);
+    rows.push(['Feed','Total kg/day','Cost/day']);
+    (data.perFeed||[]).forEach(f => rows.push([f.feed_name, f.kg_per_day, f.cost_per_day]));
+    rows.push([]);
+    rows.push(['Total Cost Per Day', data.totalCostPerDay]);
+
+    const csvContent = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `daily-feed-cost-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+// wire refresh
+document.getElementById('refreshBtn').addEventListener('click', () => fetchDailyFeedCost(isMockMode()));
+
+// Mock mode helpers: allow ?mock=1 or persistent localStorage toggle
+function isMockMode() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mock') === '1' || params.get('mock') === 'true') return true;
+    } catch (e) {}
+    return localStorage.getItem('useMock') === '1';
+}
+
+function setMockMode(enabled) {
+    localStorage.setItem('useMock', enabled ? '1' : '0');
+    updateUseMockButton();
+}
+
+function updateUseMockButton() {
+    const useMockBtn = document.getElementById('useMockBtn');
+    useMockBtn.classList.remove('hidden');
+    if (isMockMode()) {
+        useMockBtn.textContent = 'Using Mock Data (click to use live)';
+    } else {
+        useMockBtn.textContent = 'Use Mock Data';
+    }
+    useMockBtn.onclick = () => {
+        setMockMode(!isMockMode());
+        fetchDailyFeedCost(isMockMode());
+    };
+
+    // Update the visible banner immediately when the button state changes
+    updateModeBanner();
+}
+
+// initialize mock button and load mode-aware data
+updateUseMockButton();
+updateModeBanner();
+fetchDailyFeedCost(isMockMode());
+
+function updateModeBanner() {
+    const banner = document.getElementById('modeBanner');
+    if (!banner) return;
+    if (isMockMode()) {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+        banner.textContent = 'Mock data is active — data is simulated.';
+        banner.classList.remove('hidden');
+    } else {
+        banner.className = 'p-3 rounded mb-4 text-sm bg-green-50 text-green-800';
+        banner.textContent = 'Live data (connected to database).';
+        banner.classList.remove('hidden');
+    }
+}
+
+function getMockData() {
+    return {
+        perAnimal: [
+            {
+                animal_id: 1,
+                animal_name: 'Bessie',
+                diet_id: 2,
+                diet_name: 'High Protein Mix',
+                daily_kg: 12.34,
+                daily_kg_basis: 'ration_size_kg*feeding_frequency',
+                feed_components: [
+                    { feed_id: 10, feed_name: 'Alfalfa Pellets', percentage_in_diet: 60, kg_per_day: 7.404, cost_per_day: parseFloat((7.404 * 0.25).toFixed(4)) },
+                    { feed_id: 11, feed_name: 'Corn', percentage_in_diet: 40, kg_per_day: 4.936, cost_per_day: parseFloat((4.936 * 0.18).toFixed(4)) }
+                ],
+                total_cost_per_day: parseFloat((7.404 * 0.25 + 4.936 * 0.18).toFixed(4))
+            },
+            {
+                animal_id: 2,
+                animal_name: 'Molly',
+                diet_id: 3,
+                diet_name: 'Pasture Blend',
+                daily_kg: 8.5,
+                daily_kg_basis: 'total_ration_size_kg',
+                feed_components: [
+                    { feed_id: 12, feed_name: 'Hay', percentage_in_diet: 100, kg_per_day: 8.5, cost_per_day: parseFloat((8.5 * 0.05).toFixed(4)) }
+                ],
+                total_cost_per_day: parseFloat((8.5 * 0.05).toFixed(4))
+            }
+        ],
+        perFeed: [
+            { feed_id: 10, feed_name: 'Alfalfa Pellets', kg_per_day: 7.404, cost_per_day: parseFloat((7.404 * 0.25).toFixed(4)) },
+            { feed_id: 11, feed_name: 'Corn', kg_per_day: 4.936, cost_per_day: parseFloat((4.936 * 0.18).toFixed(4)) },
+            { feed_id: 12, feed_name: 'Hay', kg_per_day: 8.5, cost_per_day: parseFloat((8.5 * 0.05).toFixed(4)) }
+        ],
+        totalCostPerDay: parseFloat(((7.404 * 0.25) + (4.936 * 0.18) + (8.5 * 0.05)).toFixed(4))
+    };
+}
+</script>
+
+</body>
+</html>

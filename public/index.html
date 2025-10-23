@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HerdSentry - Animal Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <img src="/img/Logo.png" alt="HerdSentry Logo" class="h-16 w-auto mr-3">
+                    <span class="ml-3 text-sm text-gray-500">Animal Management & Medical Records System</span>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Version 2.0 - Medical Records & File Upload
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Welcome Section -->
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">Welcome to HerdSentry</h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Comprehensive animal management system with advanced medical records tracking, 
+                file upload capabilities, and health monitoring tools for livestock and research animals.
+            </p>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            
+            <!-- Animal Management -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-blue-100 rounded-lg">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-1a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">Animal Management</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Register new animals, track basic information, and manage animal profiles with species, diet, and identification data.</p>
+                <div class="space-y-3">
+                    <a href="newAnimal.html" class="block w-full bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        ➕ Add New Animal
+                    </a>
+                    <a href="animalForm" class="block w-full bg-blue-100 text-blue-600 text-center py-2 px-4 rounded-lg hover:bg-blue-200 transition-colors">
+                        📋 Animal Form (Alt)
+                    </a>
+                </div>
+            </div>
+
+            <!-- Medical Records -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">Medical Records</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Record medical examinations, import diagnostic test results, upload medical files, and maintain comprehensive health records.</p>
+                <div class="space-y-3">
+                    <a href="medical.html" class="block w-full bg-green-600 text-white text-center py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                        🏥 Medical Records & Upload
+                    </a>
+                    <div class="text-xs text-gray-500 text-center">
+                        ✨ Now with file upload support
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Management -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">File Manager</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Browse, search, and manage all uploaded medical files. View file statistics and download documents organized by animal.</p>
+                <div class="space-y-3">
+                    <a href="medicalFileManager.html" class="block w-full bg-purple-600 text-white text-center py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                        📁 File Manager
+                    </a>
+                    <div class="text-xs text-gray-500 text-center">
+                        🔍 Advanced search & filtering
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feed & Nutrition -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-yellow-100 rounded-lg">
+                        <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">Feed & Nutrition</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Monitor daily feed costs, analyze nutritional content, and compare diet effectiveness across your herd.</p>
+                <div class="space-y-3">
+                    <a href="dailyFeedCost.html" class="block w-full bg-yellow-600 text-white text-center py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors">
+                        💰 Daily Feed Costs
+                    </a>
+                    <a href="feedNutrition.html" class="block w-full bg-yellow-100 text-yellow-600 text-center py-2 px-4 rounded-lg hover:bg-yellow-200 transition-colors">
+                        🌾 Feed Nutrition
+                    </a>
+                    <a href="dietComparison.html" class="block w-full bg-yellow-100 text-yellow-600 text-center py-2 px-4 rounded-lg hover:bg-yellow-200 transition-colors">
+                        📊 Diet Comparison
+                    </a>
+                </div>
+            </div>
+
+            <!-- Location Tracking -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-red-100 rounded-lg">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">Location Tracking</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Monitor animal locations in real-time, track movement patterns, and ensure animals stay within designated areas.</p>
+                <div class="space-y-3">
+                    <a href="mapView.html" class="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        🗺️ Live Map View
+                    </a>
+                </div>
+            </div>
+
+            <!-- Documentation -->
+            <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center mb-4">
+                    <div class="p-3 bg-gray-100 rounded-lg">
+                        <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 ml-3">Documentation</h3>
+                </div>
+                <p class="text-gray-600 mb-6">Setup guides, API documentation, and feature explanations for the HerdSentry system and new medical file upload capabilities.</p>
+                <div class="space-y-3">
+                    <a href="MEDICAL_FEATURES.md" target="_blank" class="block w-full bg-gray-600 text-white text-center py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                        📚 Medical Features Guide
+                    </a>
+                    <a href="DATABASE_SETUP.md" target="_blank" class="block w-full bg-gray-100 text-gray-600 text-center py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">
+                        🔧 Database Setup
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Features Highlight -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 text-white mb-8">
+            <div class="flex items-center mb-4">
+                <svg class="w-8 h-8 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <h3 class="text-2xl font-bold">✨ New in Version 2.0</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-semibold mb-2">📁 Medical File Upload</h4>
+                    <p class="text-blue-100">Upload images, PDFs, and documents linked to medical exams and diagnostic results. Drag-and-drop interface with progress tracking.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">🔍 Advanced File Management</h4>
+                    <p class="text-blue-100">Search and filter uploaded files, view statistics, and manage medical documents with comprehensive metadata.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">💾 Enhanced Database Schema</h4>
+                    <p class="text-blue-100">New Medical_Files table with proper foreign key relationships and automatic file metadata tracking.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">🔗 Record Linking</h4>
+                    <p class="text-blue-100">Link uploaded files to specific medical exams or diagnostic results for better organization and retrieval.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Start Guide -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">🚀 Quick Start Guide</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-blue-600 font-bold text-xl">1</span>
+                    </div>
+                    <h4 class="font-semibold mb-2">Setup Database</h4>
+                    <p class="text-gray-600 text-sm">Run <code class="bg-gray-100 px-2 py-1 rounded">./setup_database.sh</code> to initialize MySQL database and create required tables.</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-green-600 font-bold text-xl">2</span>
+                    </div>
+                    <h4 class="font-semibold mb-2">Add Animals</h4>
+                    <p class="text-gray-600 text-sm">Start by adding animals to your system using the Animal Management interface.</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-purple-600 font-bold text-xl">3</span>
+                    </div>
+                    <h4 class="font-semibold mb-2">Record Medical Data</h4>
+                    <p class="text-gray-600 text-sm">Use Medical Records to track health information and upload supporting documents.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="mt-8 text-center">
+            <div id="systemStatus" class="inline-flex items-center px-4 py-2 rounded-full text-sm">
+                <div class="w-2 h-2 rounded-full mr-2" id="statusIndicator"></div>
+                <span id="statusText">Checking system status...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="text-center text-gray-500 text-sm">
+                <p>HerdSentry v2.0 - Animal Management & Medical Records System</p>
+                <p class="mt-1">Built with Node.js, MySQL, and Tailwind CSS</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Check system status
+        async function checkSystemStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const systemStatus = document.getElementById('systemStatus');
+
+            try {
+                // Try to fetch from API to check if server is running
+                const response = await fetch('/api/species');
+                
+                if (response.ok) {
+                    statusIndicator.className = 'w-2 h-2 rounded-full mr-2 bg-green-500';
+                    statusText.textContent = 'System Online - Database Connected';
+                    systemStatus.className = 'inline-flex items-center px-4 py-2 rounded-full text-sm bg-green-100 text-green-800';
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch (error) {
+                statusIndicator.className = 'w-2 h-2 rounded-full mr-2 bg-yellow-500';
+                statusText.textContent = 'System Online - Mock Data Mode Available';
+                systemStatus.className = 'inline-flex items-center px-4 py-2 rounded-full text-sm bg-yellow-100 text-yellow-800';
+            }
+        }
+
+        // Check status when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSystemStatus();
+        });
+    </script>
+
+</body>
+</html>

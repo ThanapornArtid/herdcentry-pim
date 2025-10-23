@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HerdSentry - Feed & Nutrition Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .transition-all-fast {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+<div class="max-w-7xl mx-auto">
+    <div class="flex items-center justify-center mb-6">
+        <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-16 w-auto mr-3">
+        <h1 class="text-4xl font-bold text-gray-800">
+            Feed & Nutrition Analysis
+        </h1>
+    </div>
+
+    <!-- Loading and Error Messages -->
+    <div id="loadingMessage" class="mb-4 rounded-lg p-4 text-center text-lg font-medium bg-blue-100 text-blue-800">
+        Loading feed and nutrition data...
+    </div>
+    <div id="errorMessage" class="hidden mb-4 rounded-lg p-4 text-center text-lg font-medium bg-red-100 text-red-800">
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Feed Items List Panel -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Feed Items</h2>
+                
+                <!-- Search Bar -->
+                <div class="mb-4">
+                    <input type="text" 
+                           id="feedSearchInput"
+                           placeholder="Search feed items..."
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- Feed Items List -->
+                <div id="feedItemsList" class="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
+                    <!-- Feed items will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Feed Details Panel -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <!-- No Feed Selected Message -->
+                <div id="noFeedSelected" class="text-center py-12">
+                    <p class="text-gray-500 text-lg">Select a feed item to view detailed information</p>
+                </div>
+
+                <!-- Feed Details Content (hidden initially) -->
+                <div id="feedDetailsContent" class="hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 id="selectedFeedName" class="text-2xl font-bold text-gray-800"></h2>
+                            <p id="selectedFeedManufacturer" class="text-gray-500"></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Cost per kg</p>
+                            <p id="selectedFeedCost" class="text-2xl font-bold text-green-600"></p>
+                        </div>
+                    </div>
+
+                    <!-- Nutritional Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Charts -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4">Composition Breakdown</h3>
+                            <canvas id="compositionChart" class="w-full"></canvas>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4">Nutritional Values</h3>
+                            <div class="space-y-4">
+                                <!-- Calories -->
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="font-medium text-gray-600">Calories per kg</span>
+                                        <span id="caloriesValue" class="font-bold text-gray-800"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Calcium -->
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="font-medium text-gray-600">Calcium (mg/kg)</span>
+                                        <span id="calciumValue" class="font-bold text-gray-800"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Usage in Diets Section -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Current Usage in Diets</h3>
+                        <div id="dietUsageList" class="space-y-3">
+                            <!-- Diet usage items will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    fetchFeedData();
+    setupSearchHandler();
+});
+
+let compositionChart = null;
+let allFeedItems = [];
+
+// Search handler setup
+function setupSearchHandler() {
+    const searchInput = document.getElementById('feedSearchInput');
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredItems = allFeedItems.filter(item => 
+            item.feed_name.toLowerCase().includes(searchTerm)
+        );
+        renderFeedItemsList(filteredItems);
+    });
+}
+
+// Mock data for development
+const mockFeedData = [
+    {
+        feed_id: 1,
+        feed_name: "Corn Silage",
+        manufacturer: "Farm Grown",
+        cost_per_kg: 0.15,
+        calories_per_kg: 2000.00,
+        protein_percentage: 8.00,
+        fat_percentage: 2.00,
+        fiber_percentage: 35.00,
+        calcium_mg_per_kg: 50.00,
+        diets: [
+            { diet_name: "Lactating Dairy Cow TMR", percentage: 60 }
+        ]
+    },
+    {
+        feed_id: 2,
+        feed_name: "Alfalfa Hay (Dry)",
+        manufacturer: "Local Bales",
+        cost_per_kg: 0.25,
+        calories_per_kg: 1800.00,
+        protein_percentage: 18.00,
+        fat_percentage: 3.00,
+        fiber_percentage: 30.00,
+        calcium_mg_per_kg: 1200.00,
+        diets: [
+            { diet_name: "Lactating Dairy Cow TMR", percentage: 30 }
+        ]
+    },
+    {
+        feed_id: 3,
+        feed_name: "Soybean Meal (48%)",
+        manufacturer: "AgriProtein Corp",
+        cost_per_kg: 0.75,
+        calories_per_kg: 3400.00,
+        protein_percentage: 48.00,
+        fat_percentage: 1.00,
+        fiber_percentage: 3.00,
+        calcium_mg_per_kg: 100.00,
+        diets: [
+            { diet_name: "Lactating Dairy Cow TMR", percentage: 10 },
+            { diet_name: "Pig Grower (40kg - 80kg)", percentage: 10 }
+        ]
+    }
+];
+
+async function fetchFeedData() {
+    const loadingMsg = document.getElementById('loadingMessage');
+    const errorMsg = document.getElementById('errorMessage');
+    const apiEndpoint = '/api/feeditems/details';
+
+    try {
+        const response = await fetch(apiEndpoint);
+        
+        if (!response.ok) {
+            throw new Error(`API Error: Server responded with status ${response.status}`);
+        }
+        
+        allFeedItems = await response.json();
+        
+        if (allFeedItems && allFeedItems.length > 0) {
+            loadingMsg.textContent = `Successfully loaded ${allFeedItems.length} feed items!`;
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-green-100', 'text-green-800');
+            
+            // Auto-select the first feed item
+            setTimeout(() => {
+                const firstFeedItem = allFeedItems[0];
+                showFeedDetails(firstFeedItem);
+            }, 100);
+        } else {
+            loadingMsg.textContent = 'No feed items found in the database.';
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-yellow-100', 'text-yellow-800');
+        }
+
+    } catch (error) {
+        console.warn(`Warning: Could not fetch from ${apiEndpoint}. ${error.message}. Using mock data.`);
+        
+        // Only use mock data in development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            allFeedItems = mockFeedData;
+            loadingMsg.textContent = 'Development mode: Using sample data for testing.';
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-yellow-100', 'text-yellow-800');
+        } else {
+            loadingMsg.textContent = 'Error: Could not load feed data. Please try again later.';
+            loadingMsg.classList.remove('bg-blue-100', 'text-blue-800');
+            loadingMsg.classList.add('bg-red-100', 'text-red-800');
+            errorMsg.textContent = error.message;
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+    }
+
+    errorMsg.classList.add('hidden');
+    renderFeedItemsList(allFeedItems);
+}
+
+function renderFeedItemsList(feedItems) {
+    const listContainer = document.getElementById('feedItemsList');
+    listContainer.innerHTML = '';
+
+    feedItems.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'p-4 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-all-fast';
+        itemDiv.onclick = () => showFeedDetails(item);
+
+        itemDiv.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-semibold text-gray-800">${item.feed_name}</h3>
+                    <p class="text-sm text-gray-500">${item.manufacturer || 'No manufacturer'}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-medium text-green-600">$${parseFloat(item.cost_per_kg).toFixed(2)}/kg</p>
+                </div>
+            </div>
+        `;
+
+        listContainer.appendChild(itemDiv);
+    });
+}
+
+function showFeedDetails(feed) {
+    const noFeedSelected = document.getElementById('noFeedSelected');
+    const feedDetailsContent = document.getElementById('feedDetailsContent');
+    
+    // Hide the placeholder and show the content
+    noFeedSelected.classList.add('hidden');
+    feedDetailsContent.classList.remove('hidden');
+
+    // Update basic information
+    document.getElementById('selectedFeedName').textContent = feed.feed_name;
+    document.getElementById('selectedFeedManufacturer').textContent = feed.manufacturer || 'No manufacturer specified';
+    document.getElementById('selectedFeedCost').textContent = `$${parseFloat(feed.cost_per_kg).toFixed(2)}/kg`;
+    
+    // Update nutritional values
+    document.getElementById('caloriesValue').textContent = feed.calories_per_kg ? 
+        `${feed.calories_per_kg.toLocaleString()} kcal` : 'Not specified';
+    document.getElementById('calciumValue').textContent = feed.calcium_mg_per_kg ? 
+        `${feed.calcium_mg_per_kg.toLocaleString()} mg` : 'Not specified';
+
+    // Update composition chart
+    updateCompositionChart(feed);
+
+    // Update diet usage list
+    renderDietUsage(feed);
+}
+
+function updateCompositionChart(feed) {
+    // Destroy existing chart if it exists
+    if (compositionChart) {
+        compositionChart.destroy();
+    }
+
+    const ctx = document.getElementById('compositionChart').getContext('2d');
+    
+    // Prepare data
+    const data = {
+        labels: ['Protein', 'Fat', 'Fiber', 'Other'],
+        datasets: [{
+            data: [
+                feed.protein_percentage || 0,
+                feed.fat_percentage || 0,
+                feed.fiber_percentage || 0,
+                100 - ((feed.protein_percentage || 0) + 
+                      (feed.fat_percentage || 0) + 
+                      (feed.fiber_percentage || 0))
+            ],
+            backgroundColor: [
+                '#4F46E5', // Indigo for Protein
+                '#EF4444', // Red for Fat
+                '#10B981', // Green for Fiber
+                '#9CA3AF'  // Gray for Other
+            ]
+        }]
+    };
+
+    compositionChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: data,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.parsed}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderDietUsage(feed) {
+    const usageList = document.getElementById('dietUsageList');
+    usageList.innerHTML = '';
+
+    if (!feed.diets || feed.diets.length === 0) {
+        usageList.innerHTML = `
+            <p class="text-gray-500 text-center py-4">
+                This feed item is not currently used in any diets
+            </p>
+        `;
+        return;
+    }
+
+    feed.diets.forEach(diet => {
+        const dietDiv = document.createElement('div');
+        dietDiv.className = 'p-4 bg-gray-50 rounded-lg';
+        dietDiv.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <h4 class="font-medium text-gray-800">${diet.diet_name}</h4>
+                </div>
+                <div>
+                    <span class="font-semibold text-blue-600">${diet.percentage}%</span>
+                    <span class="text-gray-500 text-sm">of diet</span>
+                </div>
+            </div>
+        `;
+        usageList.appendChild(dietDiv);
+    });
+}
+
+</script>
+
+</body>
+</html>

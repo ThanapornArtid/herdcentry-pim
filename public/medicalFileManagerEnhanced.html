@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HerdSentry - Enhanced Medical File Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .drag-over { border-color: #3b82f6; background-color: #dbeafe; }
+        .file-preview { max-width: 200px; max-height: 150px; object-fit: cover; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="/img/HerdSentry.png" alt="HerdSentry Logo" class="h-12 w-auto mr-3">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Enhanced Medical File Manager</h1>
+                    <p class="text-gray-600">Comprehensive medical file management with advanced search and organization</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="medical.html" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Medical Records
+                </a>
+                <a href="newAnimal.html" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Add Animal
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="loading" class="hidden p-4 rounded-md bg-blue-50 text-blue-800 mb-4">
+        <div class="flex items-center">
+            <div class="loading border-2 border-blue-600 border-t-transparent rounded-full w-4 h-4 mr-2"></div>
+            Processing...
+        </div>
+    </div>
+    <div id="error" class="hidden p-4 rounded-md bg-red-50 text-red-800 mb-4"></div>
+    <div id="success" class="hidden p-4 rounded-md bg-green-50 text-green-800 mb-4"></div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">🔍 Search & Filter Medical Files</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Animal</label>
+                <select id="animalFilter" class="w-full p-2 border rounded">
+                    <option value="">All Animals</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">File Category</label>
+                <select id="categoryFilter" class="w-full p-2 border rounded">
+                    <option value="">All Categories</option>
+                    <option value="X-Ray">X-Ray</option>
+                    <option value="Ultrasound">Ultrasound</option>
+                    <option value="Photo">Photo</option>
+                    <option value="Document">Document</option>
+                    <option value="Lab Report">Lab Report</option>
+                    <option value="Certificate">Certificate</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Record ID</label>
+                <input type="text" id="recordIdSearch" placeholder="EXAM-2025-001 or DIAG-2025-001" 
+                       class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                <input type="date" id="dateFrom" class="w-full p-2 border rounded">
+            </div>
+            <div class="flex items-end">
+                <button id="searchBtn" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Search Files
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Section -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">📤 Upload Medical Files</h2>
+        
+        <!-- Animal and Record Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Animal *</label>
+                <select id="uploadAnimalSelect" class="w-full p-2 border rounded" required>
+                    <option value="">Choose animal...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Link to Exam (Optional)</label>
+                <select id="uploadExamSelect" class="w-full p-2 border rounded">
+                    <option value="">No exam link</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Link to Diagnostic (Optional)</label>
+                <select id="uploadDiagnosticSelect" class="w-full p-2 border rounded">
+                    <option value="">No diagnostic link</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- File Upload Area -->
+        <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 hover:border-gray-400 transition-colors cursor-pointer">
+            <div class="flex flex-col items-center">
+                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="text-lg font-medium text-gray-700 mb-2">Drop files here or click to browse</p>
+                <p class="text-sm text-gray-500">Supports: Images, PDFs, Documents (Max 10MB each)</p>
+                <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv" class="hidden">
+                <button type="button" id="browseBtn" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    Browse Files
+                </button>
+            </div>
+        </div>
+
+        <!-- File Metadata -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">File Category</label>
+                <select id="uploadCategory" class="w-full p-2 border rounded">
+                    <option value="Other">Other</option>
+                    <option value="X-Ray">X-Ray</option>
+                    <option value="Ultrasound">Ultrasound</option>
+                    <option value="Photo">Photo</option>
+                    <option value="Document">Document</option>
+                    <option value="Lab Report">Lab Report</option>
+                    <option value="Certificate">Certificate</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
+                <select id="uploadAccessLevel" class="w-full p-2 border rounded">
+                    <option value="Restricted">Restricted</option>
+                    <option value="Public">Public</option>
+                    <option value="Confidential">Confidential</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="uploadDescription" rows="3" placeholder="File description..."
+                         class="w-full p-2 border rounded"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                <textarea id="uploadTags" rows="3" placeholder="vaccination, x-ray, routine..."
+                         class="w-full p-2 border rounded"></textarea>
+            </div>
+        </div>
+
+        <!-- Selected Files Preview -->
+        <div id="filePreview" class="hidden mb-4">
+            <h3 class="text-lg font-medium text-gray-700 mb-2">Selected Files</h3>
+            <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Upload Button -->
+        <div class="flex justify-end">
+            <button id="uploadBtn" class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400" disabled>
+                Upload Files
+            </button>
+        </div>
+    </div>
+
+    <!-- Medical Record Search -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">🔎 Search Medical Records by ID</h2>
+        <div class="flex gap-4">
+            <div class="flex-1">
+                <input type="text" id="recordSearch" placeholder="Enter Record ID (e.g., EXAM-2025-001, DIAG-2025-001, FILE-2025-001)" 
+                       class="w-full p-3 border rounded">
+            </div>
+            <button id="recordSearchBtn" class="px-6 py-3 bg-purple-600 text-white rounded hover:bg-purple-700">
+                Search Record
+            </button>
+        </div>
+        <div id="recordSearchResult" class="mt-4 hidden">
+            <!-- Search results will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Files Display -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">📋 Medical Files</h2>
+            <div class="flex gap-2">
+                <button id="refreshBtn" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    Refresh
+                </button>
+                <select id="viewMode" class="px-3 py-2 border rounded">
+                    <option value="grid">Grid View</option>
+                    <option value="list">List View</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Files Counter -->
+        <div id="filesCounter" class="mb-4 text-sm text-gray-600">
+            Loading files...
+        </div>
+
+        <!-- Files Grid/List -->
+        <div id="filesContainer">
+            <div id="filesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Files will be loaded here -->
+            </div>
+            <div id="filesList" class="hidden space-y-2">
+                <!-- List view will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="flex justify-center mt-6 space-x-2">
+            <!-- Pagination buttons will be added here -->
+        </div>
+    </div>
+</div>
+
+<!-- File Details Modal -->
+<div id="fileModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold" id="modalTitle">File Details</h3>
+            <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="modalContent">
+            <!-- Modal content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let animals = [];
+let allFiles = [];
+let currentFiles = [];
+let currentPage = 1;
+const filesPerPage = 12;
+let selectedFiles = [];
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+    setupEventListeners();
+});
+
+async function initializeApp() {
+    try {
+        showLoading();
+        await Promise.all([
+            loadAnimals(),
+            loadAllFiles()
+        ]);
+        hideLoading();
+    } catch (error) {
+        showError('Failed to initialize application: ' + error.message);
+    }
+}
+
+function setupEventListeners() {
+    // Search and filter
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+    document.getElementById('recordIdSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') performSearch();
+    });
+
+    // Record search
+    document.getElementById('recordSearchBtn').addEventListener('click', searchRecord);
+    document.getElementById('recordSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchRecord();
+    });
+
+    // File upload
+    document.getElementById('browseBtn').addEventListener('click', () => {
+        document.getElementById('fileInput').click();
+    });
+    
+    document.getElementById('fileInput').addEventListener('change', handleFileSelection);
+    document.getElementById('uploadBtn').addEventListener('click', uploadFiles);
+    document.getElementById('uploadAnimalSelect').addEventListener('change', loadAnimalRecords);
+
+    // Drag and drop
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('dragleave', handleDragLeave);
+    dropZone.addEventListener('drop', handleDrop);
+    dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+
+    // View controls
+    document.getElementById('refreshBtn').addEventListener('click', loadAllFiles);
+    document.getElementById('viewMode').addEventListener('change', toggleViewMode);
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+}
+
+// API Functions
+async function loadAnimals() {
+    try {
+        const response = await fetch('/api/animals');
+        if (!response.ok) throw new Error('Failed to load animals');
+        
+        animals = await response.json();
+        
+        // Populate animal selectors
+        const selectors = ['animalFilter', 'uploadAnimalSelect'];
+        selectors.forEach(selectorId => {
+            const select = document.getElementById(selectorId);
+            select.innerHTML = selectorId === 'animalFilter' ? '<option value="">All Animals</option>' : '<option value="">Choose animal...</option>';
+            
+            animals.forEach(animal => {
+                const option = document.createElement('option');
+                option.value = animal.animal_id;
+                option.textContent = `${animal.animal_name} (${animal.species_name})`;
+                select.appendChild(option);
+            });
+        });
+    } catch (error) {
+        showError('Failed to load animals: ' + error.message);
+    }
+}
+
+async function loadAnimalRecords() {
+    const animalId = document.getElementById('uploadAnimalSelect').value;
+    if (!animalId) {
+        document.getElementById('uploadExamSelect').innerHTML = '<option value="">No exam link</option>';
+        document.getElementById('uploadDiagnosticSelect').innerHTML = '<option value="">No diagnostic link</option>';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/animals/${animalId}/medical`);
+        if (!response.ok) throw new Error('Failed to load animal records');
+        
+        const data = await response.json();
+        
+        // Populate exam selector
+        const examSelect = document.getElementById('uploadExamSelect');
+        examSelect.innerHTML = '<option value="">No exam link</option>';
+        if (data.exams) {
+            data.exams.forEach(exam => {
+                const option = document.createElement('option');
+                option.value = exam.exam_id;
+                option.textContent = `${exam.unique_record_id || exam.exam_id} - ${new Date(exam.exam_date).toLocaleDateString()}`;
+                examSelect.appendChild(option);
+            });
+        }
+
+        // Populate diagnostic selector
+        const diagSelect = document.getElementById('uploadDiagnosticSelect');
+        diagSelect.innerHTML = '<option value="">No diagnostic link</option>';
+        if (data.diagnostics) {
+            data.diagnostics.forEach(diag => {
+                const option = document.createElement('option');
+                option.value = diag.result_id;
+                option.textContent = `${diag.unique_record_id || diag.result_id} - ${diag.test_name}`;
+                diagSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        showError('Failed to load animal records: ' + error.message);
+    }
+}
+
+async function loadAllFiles() {
+    try {
+        showLoading();
+        // Try to load files for each animal since we don't have a global endpoint
+        await loadFilesByAnimals();
+        hideLoading();
+    } catch (error) {
+        showError('Failed to load files: ' + error.message);
+        hideLoading();
+    }
+}
+
+async function loadFilesByAnimals() {
+    try {
+        const promises = animals.map(animal => 
+            fetch(`/api/animals/${animal.animal_id}/medical/files`)
+                .then(response => response.ok ? response.json() : { files: [] })
+                .then(data => {
+                    const files = data.files || data;
+                    return Array.isArray(files) ? files.map(file => ({ 
+                        ...file, 
+                        animal_name: animal.animal_name,
+                        animal_id: animal.animal_id
+                    })) : [];
+                })
+                .catch(() => [])
+        );
+        
+        const results = await Promise.all(promises);
+        allFiles = results.flat();
+        currentFiles = [...allFiles];
+        displayFiles();
+        updateFilesCounter();
+    } catch (error) {
+        showError('Failed to load files: ' + error.message);
+    }
+}
+
+async function performSearch() {
+    const animalId = document.getElementById('animalFilter').value;
+    const category = document.getElementById('categoryFilter').value;
+    const recordId = document.getElementById('recordIdSearch').value.trim();
+    const dateFrom = document.getElementById('dateFrom').value;
+
+    // If searching by record ID, use the search endpoint
+    if (recordId) {
+        try {
+            showLoading();
+            const response = await fetch(`/api/medical/search/${encodeURIComponent(recordId)}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.record && data.record.attached_files) {
+                    currentFiles = data.record.attached_files;
+                } else {
+                    currentFiles = [];
+                }
+                showSuccess(`Found record: ${recordId}`);
+            } else {
+                currentFiles = [];
+                showError(`No record found with ID: ${recordId}`);
+            }
+            displayFiles();
+            updateFilesCounter();
+            hideLoading();
+            return;
+        } catch (error) {
+            showError('Search failed: ' + error.message);
+            hideLoading();
+            return;
+        }
+    }
+
+    // Filter current files
+    currentFiles = allFiles.filter(file => {
+        if (animalId && file.animal_id != animalId) return false;
+        if (category && file.file_category !== category) return false;
+        if (dateFrom && new Date(file.uploaded_at) < new Date(dateFrom)) return false;
+        return true;
+    });
+
+    currentPage = 1;
+    displayFiles();
+    updateFilesCounter();
+}
+
+async function searchRecord() {
+    const recordId = document.getElementById('recordSearch').value.trim();
+    if (!recordId) {
+        showError('Please enter a record ID');
+        return;
+    }
+
+    try {
+        showLoading();
+        const response = await fetch(`/api/medical/search/${encodeURIComponent(recordId)}`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayRecordSearchResult(data);
+            showSuccess(`Found ${data.record_type} record: ${recordId}`);
+        } else {
+            const error = await response.json();
+            showError(error.message || `No record found with ID: ${recordId}`);
+            document.getElementById('recordSearchResult').classList.add('hidden');
+        }
+        hideLoading();
+    } catch (error) {
+        showError('Search failed: ' + error.message);
+        hideLoading();
+    }
+}
+
+function displayRecordSearchResult(data) {
+    const container = document.getElementById('recordSearchResult');
+    const record = data.record;
+    
+    let content = `
+        <div class="border rounded-lg p-4 bg-gray-50">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        ${data.record_type.charAt(0).toUpperCase() + data.record_type.slice(1)} Record
+                    </h3>
+                    <p class="text-blue-600 font-mono">${data.record_id}</p>
+                </div>
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Found</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div><strong>Animal:</strong> ${record.animal_name || 'Unknown'}</div>
+    `;
+
+    if (data.record_type === 'examination') {
+        content += `
+                <div><strong>Date:</strong> ${new Date(record.exam_date).toLocaleDateString()}</div>
+                <div><strong>Veterinarian:</strong> ${record.veterinarian || 'Not specified'}</div>
+                <div><strong>Type:</strong> ${record.exam_type || 'Routine'}</div>
+                <div><strong>Status:</strong> ${record.exam_status || 'Active'}</div>
+                <div><strong>Diagnosis:</strong> ${record.diagnosis || 'Not specified'}</div>
+        `;
+        if (record.associated_diagnostics && record.associated_diagnostics.length > 0) {
+            content += `<div class="col-span-2"><strong>Associated Diagnostics:</strong> ${record.associated_diagnostics.length} result(s)</div>`;
+        }
+    } else if (data.record_type === 'diagnostic') {
+        content += `
+                <div><strong>Test:</strong> ${record.test_name}</div>
+                <div><strong>Date:</strong> ${new Date(record.test_date).toLocaleDateString()}</div>
+                <div><strong>Result:</strong> ${record.result_value}</div>
+                <div><strong>Status:</strong> ${record.result_status || 'Final'}</div>
+                <div><strong>Category:</strong> ${record.test_category || 'Other'}</div>
+                <div><strong>Lab:</strong> ${record.lab_name || 'Not specified'}</div>
+        `;
+    } else if (data.record_type === 'file') {
+        content += `
+                <div><strong>Filename:</strong> ${record.original_filename}</div>
+                <div><strong>Category:</strong> ${record.file_category || 'Other'}</div>
+                <div><strong>Size:</strong> ${formatFileSize(record.file_size_bytes)}</div>
+                <div><strong>Uploaded:</strong> ${new Date(record.uploaded_at).toLocaleDateString()}</div>
+                <div><strong>Access Level:</strong> ${record.access_level || 'Restricted'}</div>
+        `;
+    }
+
+    content += `
+            </div>
+            
+            ${record.attached_files && record.attached_files.length > 0 ? 
+                `<div class="mt-4"><strong>Attached Files:</strong> ${record.attached_files.length} file(s)</div>` : ''}
+        </div>
+    `;
+
+    container.innerHTML = content;
+    container.classList.remove('hidden');
+}
+
+// File Upload Functions
+function handleFileSelection(event) {
+    selectedFiles = Array.from(event.target.files);
+    displaySelectedFiles();
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(event) {
+    event.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    selectedFiles = Array.from(event.dataTransfer.files);
+    displaySelectedFiles();
+}
+
+function displaySelectedFiles() {
+    const filePreview = document.getElementById('filePreview');
+    const fileList = document.getElementById('fileList');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    if (selectedFiles.length === 0) {
+        filePreview.classList.add('hidden');
+        uploadBtn.disabled = true;
+        return;
+    }
+
+    filePreview.classList.remove('hidden');
+    fileList.innerHTML = '';
+
+    selectedFiles.forEach((file, index) => {
+        const fileCard = createFilePreviewCard(file, index);
+        fileList.appendChild(fileCard);
+    });
+
+    uploadBtn.disabled = false;
+}
+
+function createFilePreviewCard(file, index) {
+    const div = document.createElement('div');
+    div.className = 'border rounded-lg p-4 bg-gray-50';
+    
+    const isImage = file.type.startsWith('image/');
+    
+    div.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium truncate">${file.name}</span>
+            <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        ${isImage ? `<img src="${URL.createObjectURL(file)}" class="file-preview rounded mb-2">` : ''}
+        <div class="text-xs text-gray-500">
+            ${formatFileSize(file.size)} • ${file.type || 'Unknown type'}
+        </div>
+    `;
+    
+    return div;
+}
+
+async function uploadFiles() {
+    const animalId = document.getElementById('uploadAnimalSelect').value;
+    if (!animalId) {
+        showError('Please select an animal');
+        return;
+    }
+
+    if (selectedFiles.length === 0) {
+        showError('Please select files to upload');
+        return;
+    }
+
+    const formData = new FormData();
+    
+    // Add files
+    selectedFiles.forEach(file => {
+        formData.append('files', file);
+    });
+
+    // Add metadata
+    const examId = document.getElementById('uploadExamSelect').value;
+    const diagnosticId = document.getElementById('uploadDiagnosticSelect').value;
+    const category = document.getElementById('uploadCategory').value;
+    const accessLevel = document.getElementById('uploadAccessLevel').value;
+    const description = document.getElementById('uploadDescription').value;
+    const tags = document.getElementById('uploadTags').value;
+
+    if (examId) formData.append('exam_id', examId);
+    if (diagnosticId) formData.append('result_id', diagnosticId);
+    formData.append('file_category', category);
+    formData.append('access_level', accessLevel);
+    formData.append('description', description);
+    formData.append('tags', tags);
+    formData.append('uploaded_by', 'Enhanced Medical File Manager');
+
+    try {
+        showLoading();
+        const response = await fetch(`/api/animals/${animalId}/medical/files`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Upload failed');
+        }
+
+        const result = await response.json();
+        showSuccess(`${result.uploaded_count || selectedFiles.length} file(s) uploaded successfully`);
+        
+        // Reset form
+        resetUploadForm();
+        
+        // Reload files
+        await loadAllFiles();
+        hideLoading();
+    } catch (error) {
+        showError('Upload failed: ' + error.message);
+        hideLoading();
+    }
+}
+
+function resetUploadForm() {
+    selectedFiles = [];
+    document.getElementById('fileInput').value = '';
+    document.getElementById('uploadDescription').value = '';
+    document.getElementById('uploadTags').value = '';
+    document.getElementById('filePreview').classList.add('hidden');
+    document.getElementById('uploadBtn').disabled = true;
+}
+
+// Display Functions
+function displayFiles() {
+    const viewMode = document.getElementById('viewMode').value;
+    
+    if (viewMode === 'grid') {
+        displayFilesGrid();
+        document.getElementById('filesGrid').classList.remove('hidden');
+        document.getElementById('filesList').classList.add('hidden');
+    } else {
+        displayFilesList();
+        document.getElementById('filesGrid').classList.add('hidden');
+        document.getElementById('filesList').classList.remove('hidden');
+    }
+    
+    updatePagination();
+}
+
+function displayFilesGrid() {
+    const container = document.getElementById('filesGrid');
+    container.innerHTML = '';
+
+    const startIndex = (currentPage - 1) * filesPerPage;
+    const endIndex = startIndex + filesPerPage;
+    const pageFiles = currentFiles.slice(startIndex, endIndex);
+
+    if (pageFiles.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">No files found</div>';
+        return;
+    }
+
+    pageFiles.forEach(file => {
+        const fileCard = createFileCard(file);
+        container.appendChild(fileCard);
+    });
+}
+
+function displayFilesList() {
+    const container = document.getElementById('filesList');
+    container.innerHTML = '';
+
+    const startIndex = (currentPage - 1) * filesPerPage;
+    const endIndex = startIndex + filesPerPage;
+    const pageFiles = currentFiles.slice(startIndex, endIndex);
+
+    if (pageFiles.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8">No files found</div>';
+        return;
+    }
+
+    pageFiles.forEach(file => {
+        const fileRow = createFileRow(file);
+        container.appendChild(fileRow);
+    });
+}
+
+function createFileCard(file) {
+    const div = document.createElement('div');
+    div.className = 'bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer';
+    div.onclick = () => showFileDetails(file);
+
+    const isImage = file.mime_type && file.mime_type.startsWith('image/');
+    
+    div.innerHTML = `
+        <div class="mb-3">
+            ${isImage ? 
+                `<div class="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
+                    <img src="/api/medical/files/${file.file_id}/download" class="max-h-full max-w-full object-cover rounded" 
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                    <div style="display:none" class="text-gray-400">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>` :
+                `<div class="w-full h-32 bg-gray-100 rounded flex items-center justify-center">
+                    <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>`
+            }
+        </div>
+        <h3 class="font-medium text-sm truncate mb-1">${file.original_filename}</h3>
+        <p class="text-xs text-gray-500 mb-2">${file.animal_name || 'Unknown Animal'}</p>
+        <div class="flex justify-between items-center text-xs">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">${file.file_category || 'Other'}</span>
+            <span class="text-gray-400">${formatFileSize(file.file_size_bytes)}</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-2">${new Date(file.uploaded_at).toLocaleDateString()}</div>
+        ${file.unique_file_id ? `<div class="text-xs text-blue-600 mt-1 font-mono">${file.unique_file_id}</div>` : ''}
+    `;
+
+    return div;
+}
+
+function createFileRow(file) {
+    const div = document.createElement('div');
+    div.className = 'bg-white border rounded p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between';
+    div.onclick = () => showFileDetails(file);
+
+    div.innerHTML = `
+        <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-medium">${file.original_filename}</h3>
+                <p class="text-sm text-gray-500">${file.animal_name || 'Unknown Animal'}</p>
+                ${file.unique_file_id ? `<p class="text-xs text-blue-600 font-mono">${file.unique_file_id}</p>` : ''}
+            </div>
+        </div>
+        <div class="flex items-center space-x-4 text-sm">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">${file.file_category || 'Other'}</span>
+            <span class="text-gray-500">${formatFileSize(file.file_size_bytes)}</span>
+            <span class="text-gray-400">${new Date(file.uploaded_at).toLocaleDateString()}</span>
+        </div>
+    `;
+
+    return div;
+}
+
+function showFileDetails(file) {
+    const modal = document.getElementById('fileModal');
+    const title = document.getElementById('modalTitle');
+    const content = document.getElementById('modalContent');
+
+    title.textContent = file.original_filename;
+
+    const isImage = file.mime_type && file.mime_type.startsWith('image/');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            ${isImage ? 
+                `<div class="text-center">
+                    <img src="/api/medical/files/${file.file_id}/download" class="max-w-full max-h-96 mx-auto rounded">
+                </div>` : ''
+            }
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div><strong>File ID:</strong> ${file.unique_file_id || file.file_id}</div>
+                <div><strong>Animal:</strong> ${file.animal_name || 'Unknown'}</div>
+                <div><strong>Category:</strong> ${file.file_category || 'Other'}</div>
+                <div><strong>Size:</strong> ${formatFileSize(file.file_size_bytes)}</div>
+                <div><strong>Uploaded:</strong> ${new Date(file.uploaded_at).toLocaleString()}</div>
+                <div><strong>Access Level:</strong> ${file.access_level || 'Restricted'}</div>
+            </div>
+            ${file.description ? `<div><strong>Description:</strong><br>${file.description}</div>` : ''}
+            ${file.tags ? `<div><strong>Tags:</strong> ${file.tags}</div>` : ''}
+            <div class="flex space-x-2 pt-4">
+                <a href="/api/medical/files/${file.file_id}/download" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" download>
+                    Download
+                </a>
+                <button class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('fileModal').classList.add('hidden');
+}
+
+function toggleViewMode() {
+    displayFiles();
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(currentFiles.length / filesPerPage);
+    const container = document.getElementById('pagination');
+    container.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    if (currentPage > 1) {
+        const prevBtn = createPaginationButton('Previous', currentPage - 1);
+        container.appendChild(prevBtn);
+    }
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            const pageBtn = createPaginationButton(i.toString(), i);
+            if (i === currentPage) {
+                pageBtn.classList.add('bg-blue-600', 'text-white');
+            }
+            container.appendChild(pageBtn);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            dots.className = 'px-3 py-2';
+            container.appendChild(dots);
+        }
+    }
+
+    // Next button
+    if (currentPage < totalPages) {
+        const nextBtn = createPaginationButton('Next', currentPage + 1);
+        container.appendChild(nextBtn);
+    }
+}
+
+function createPaginationButton(text, page) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.className = 'px-3 py-2 border rounded hover:bg-gray-100';
+    button.onclick = () => {
+        currentPage = page;
+        displayFiles();
+    };
+    return button;
+}
+
+function updateFilesCounter() {
+    const counter = document.getElementById('filesCounter');
+    counter.textContent = `Showing ${currentFiles.length} file(s) • Total: ${allFiles.length} files`;
+}
+
+// Utility Functions
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    displaySelectedFiles();
+}
+
+function showLoading() {
+    document.getElementById('loading').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loading').classList.add('hidden');
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+}
+
+function showSuccess(message) {
+    const successDiv = document.getElementById('success');
+    successDiv.textContent = message;
+    successDiv.classList.remove('hidden');
+    setTimeout(() => successDiv.classList.add('hidden'), 3000);
+}
+</script>
+
+</body>
+</html>
