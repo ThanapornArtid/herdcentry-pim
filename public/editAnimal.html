@@ -204,7 +204,7 @@
             }
 
             currentAnimalData = result;
-            displayMessage(`Profile for ${result.animal_name} loaded.`, true);
+         
 
         } catch (error) {
             console.error('Error fetching animal data:', error);
@@ -293,7 +293,7 @@
     // CORE SUBMISSION LOGIC (UPDATE)
     // =========================================================
 
-    async function handleFormUpdate(event, animalId) {
+async function handleFormUpdate(event, animalId) {
         event.preventDefault();
 
         const form = document.getElementById('editAnimalForm');
@@ -302,46 +302,53 @@
 
         submitButton.disabled = true;
         submitButton.textContent = 'Saving Changes...';
-        messageContainer.classList.add('hidden');
+        messageContainer.classList.add('hidden'); // Hide previous messages
+        console.log(`Starting update for animal ID: ${animalId}`); // LOGGING
 
         const formData = new FormData(form);
         const data = {};
         for (let [key, value] of formData.entries()) {
             data[key] = value === '' ? null : value;
         }
-        
-        // Ensure weight is float
+
         if (data.weight_kg) {
             data.weight_kg = parseFloat(data.weight_kg);
         }
 
-        const endpoint = `/api/animals/${animalId}`; 
+        const endpoint = `/api/animals/${animalId}`;
+        console.log(`Sending PUT request to: ${endpoint}`); // LOGGING
+        console.log('Data being sent:', JSON.stringify(data)); // LOGGING
 
         try {
             const response = await fetch(endpoint, {
-                method: 'PUT', // Use PUT for update
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
+            console.log(`Server response status: ${response.status}`); // LOGGING
             const result = await response.json();
+            console.log('Server response body:', result); // LOGGING
 
             if (response.ok) {
-                displayMessage(result.message, true);
-                
+                console.log('Response is OK. Displaying success message.'); // LOGGING
+                displayMessage(result.message, true); // Should display the success message
+
                 // Re-fetch and re-populate to confirm changes were saved (optional, but good practice)
                 await fetchAnimalData(animalId);
                 populateEditForm(currentAnimalData);
             } else {
+                console.error('Response NOT OK. Displaying error message.'); // LOGGING
                 const errorMessage = result.message || 'An unknown error occurred on the server during update.';
                 displayMessage(`Error updating animal: ${errorMessage}`, false);
             }
         } catch (error) {
-            console.error('Network or unexpected error during animal update:', error);
+            console.error('Network or unexpected error during animal update:', error); // LOGGING
             displayMessage('A network error occurred. Could not connect to the server.', false);
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Save Changes';
+            console.log('Update process finished.'); // LOGGING
         }
     }
 
