@@ -237,13 +237,19 @@ let selectedAnimalId = null;
 async function fetchAnimals(useMock = false) {
     try {
         let animals;
-        // if (useMock) {
-        //     animals = getMockAnimals();
-        // } else {
-            const res = await fetch('/api/allAnimals');
-            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        if (useMock) {
+            animals = getMockAnimals();
+        } else {
+            const res = await fetch('/api/animals');
+            console.log('API Response status:', res.status);
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('API Error:', errorText);
+                throw new Error(`Server responded with ${res.status}: ${errorText}`);
+            }
             animals = await res.json();
-        // }
+            console.log('Animals data:', animals);
+        }
 
         const select = document.getElementById('animalSelect');
         select.innerHTML = '<option value="">Select an animal...</option>';
@@ -259,7 +265,23 @@ async function fetchAnimals(useMock = false) {
         document.getElementById('content').classList.remove('hidden');
 
     } catch (err) {
-        handleError(err);
+        console.error('Error fetching animals:', err);
+        document.getElementById('loading').classList.add('hidden');
+        
+        // If not already in mock mode, automatically switch to mock data
+        if (!useMock && !isMockMode()) {
+            console.warn('Falling back to mock data due to API error.');
+            setMockMode(true);
+            const modeBanner = document.getElementById('modeBanner');
+            if (modeBanner) {
+                modeBanner.className = 'p-3 rounded mb-4 text-sm bg-yellow-50 text-yellow-800';
+                modeBanner.textContent = 'Live data unavailable — showing mock medical records.';
+                modeBanner.classList.remove('hidden');
+            }
+            fetchAnimals(true); // Retry with mock data
+        } else {
+            handleError(err);
+        }
     }
 }
 
@@ -278,8 +300,14 @@ async function fetchMedicalRecords(animalId, useMock = false) {
             }
         } else {
             const res = await fetch(`/api/animals/${animalId}/medical`);
-            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+            console.log('Medical API Response status:', res.status);
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Medical API Error:', errorText);
+                throw new Error(`Server responded with ${res.status}: ${errorText}`);
+            }
             data = await res.json();
+            console.log('Medical data:', data);
         }
 
         // Populate exams table
@@ -293,7 +321,6 @@ async function fetchMedicalRecords(animalId, useMock = false) {
                 <td class="px-3 py-2">${escapeHtml(exam.veterinarian || '—')}</td>
                 <td class="px-3 py-2">${exam.weight_kg ? exam.weight_kg + ' kg' : '—'}</td>
                 <td class="px-3 py-2">${exam.temperature_c ? exam.temperature_c + ' °C' : '—'}</td>
-                {/* Ensure exam_notes exists or use another property */}
                 <td class="px-3 py-2">${escapeHtml(exam.exam_notes || exam.notes || '—')}</td>
             `;
             examsBody.appendChild(tr);
@@ -311,14 +338,22 @@ async function fetchMedicalRecords(animalId, useMock = false) {
                 <td class="px-3 py-2">${escapeHtml(result.result_value)}</td>
                 <td class="px-3 py-2">${escapeHtml(result.units || '—')}</td>
                 <td class="px-3 py-2">${escapeHtml(result.reference_range || '—')}</td>
-                {/* Use notes or interpretation based on API response */}
                 <td class="px-3 py-2">${escapeHtml(result.notes || result.interpretation || '—')}</td>
             `;
             resultsBody.appendChild(tr);
         });
 
     } catch (err) {
-        handleError(err);
+        console.error('Error fetching medical records:', err);
+        
+        // If not already in mock mode, automatically switch to mock data
+        if (!useMock && !isMockMode()) {
+            console.warn('Falling back to mock medical data due to API error.');
+            setMockMode(true);
+            fetchMedicalRecords(animalId, true); // Retry with mock data
+        } else {
+            handleError(err);
+        }
     }
 }
 
