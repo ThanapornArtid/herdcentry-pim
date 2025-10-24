@@ -190,9 +190,10 @@
     // DATA FETCHING & POPULATION
     // =========================================================
 
-    async function fetchAnimalData(animalId) {
-        const apiEndpoint = `/api/animals/${animalId}`; 
-        displayMessage('Fetching animal profile...', true);
+ async function fetchAnimalData(animalId) {
+        const apiEndpoint = `/api/animals/${animalId}`;
+        // Temporarily hide message display while fetching profile details initially
+        // displayMessage('Fetching animal profile...', true); // Can optionally hide this too
 
         try {
             const response = await fetch(apiEndpoint);
@@ -204,7 +205,8 @@
             }
 
             currentAnimalData = result;
-         
+            // ---> COMMENT OUT THIS LINE <---
+            // displayMessage(`Profile for ${result.animal_name} loaded.`, true);
 
         } catch (error) {
             console.error('Error fetching animal data:', error);

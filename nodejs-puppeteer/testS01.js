@@ -18,11 +18,11 @@ const ADD_ANIMAL_URL = 'http://localhost:3000/animalForm'; // Or adjust if serve
   console.log('Page loaded. Filling form...');
 
   // Animal Name / Tag ID
-  await page.type('#animal_name', 'Test Puppeteer Animal');
+  await page.type('#animal_name', 'Testo');
 
   // Date of Birth
   // Note: Date input types require 'YYYY-MM-DD' format
-  await page.type('#birth_date', '2024-01-15');
+  await page.$eval('#birth_date', el => el.value = '2024-01-15');
 
   // Weight (kg)
   await page.type('#weight_kg', '125.5');
