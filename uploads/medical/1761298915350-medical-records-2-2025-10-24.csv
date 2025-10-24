@@ -1,0 +1,10 @@
+"Medical Exams"
+"Date","Veterinarian","Weight (kg)","Temperature (°C)","Notes"
+"10/24/2025, 4:23:22 PM","Dr. Smith","650.5 kg","38.5 °C","Routine checkup, all vital signs normal"
+"10/17/2025, 4:23:22 PM","Dr. Jones","648 kg","38.7 °C","Follow-up visit, recovery proceeding well"
+
+"Diagnostic Results"
+"Date","Test","Result","Units","Reference Range","Notes"
+"10/24/2025, 4:23:22 PM","Blood Glucose","5.2","mmol/L","4.0-8.0","Fasting sample"
+"10/24/2025, 4:23:22 PM","Complete Blood Count","Normal","","","All parameters within reference ranges"
+"10/17/2025, 4:23:22 PM","Ketones","Negative","","","Urine dipstick test"

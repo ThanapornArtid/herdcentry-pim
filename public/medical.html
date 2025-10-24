@@ -264,6 +264,7 @@ async function fetchAnimals(useMock = false) {
 }
 
 // Fetch medical records for selected animal
+// Fetch medical records for selected animal
 async function fetchMedicalRecords(animalId, useMock = false) {
     if (!animalId) return;
 
@@ -271,6 +272,10 @@ async function fetchMedicalRecords(animalId, useMock = false) {
         let data;
         if (useMock) {
             data = getMockMedicalRecords(animalId);
+            // Ensure mock data also uses 'diagnostics' for consistency if needed
+            if (data.results && !data.diagnostics) {
+                data.diagnostics = data.results;
+            }
         } else {
             const res = await fetch(`/api/animals/${animalId}/medical`);
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -280,22 +285,25 @@ async function fetchMedicalRecords(animalId, useMock = false) {
         // Populate exams table
         const examsBody = document.getElementById('examsBody');
         examsBody.innerHTML = '';
-        data.exams.forEach(exam => {
+        // Add safeguard for exams array
+        (data.exams || []).forEach(exam => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="px-3 py-2">${formatDateTime(exam.exam_date)}</td>
                 <td class="px-3 py-2">${escapeHtml(exam.veterinarian || '—')}</td>
                 <td class="px-3 py-2">${exam.weight_kg ? exam.weight_kg + ' kg' : '—'}</td>
                 <td class="px-3 py-2">${exam.temperature_c ? exam.temperature_c + ' °C' : '—'}</td>
-                <td class="px-3 py-2">${escapeHtml(exam.exam_notes || '—')}</td>
+                {/* Ensure exam_notes exists or use another property */}
+                <td class="px-3 py-2">${escapeHtml(exam.exam_notes || exam.notes || '—')}</td>
             `;
             examsBody.appendChild(tr);
         });
 
-        // Populate results table
+        // Populate results (diagnostics) table - CORRECTED
         const resultsBody = document.getElementById('resultsBody');
         resultsBody.innerHTML = '';
-        data.results.forEach(result => {
+        // Use 'data.diagnostics' and add safeguard
+        (data.diagnostics || []).forEach(result => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="px-3 py-2">${formatDateTime(result.test_date)}</td>
@@ -303,7 +311,8 @@ async function fetchMedicalRecords(animalId, useMock = false) {
                 <td class="px-3 py-2">${escapeHtml(result.result_value)}</td>
                 <td class="px-3 py-2">${escapeHtml(result.units || '—')}</td>
                 <td class="px-3 py-2">${escapeHtml(result.reference_range || '—')}</td>
-                <td class="px-3 py-2">${escapeHtml(result.notes || '—')}</td>
+                {/* Use notes or interpretation based on API response */}
+                <td class="px-3 py-2">${escapeHtml(result.notes || result.interpretation || '—')}</td>
             `;
             resultsBody.appendChild(tr);
         });
@@ -325,7 +334,7 @@ async function addMedicalExam(examData, useMock = false) {
             console.log('Mock mode: Would add exam:', examData);
             await new Promise(r => setTimeout(r, 500)); // simulate delay
         } else {
-            const res = await fetch(`/api/animals/${selectedAnimalId}/medical`, {
+            const res = await fetch(`/api/animals/${selectedAnimalId}/medical/exam`, { // Added '/exam', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(examData)
@@ -468,12 +477,22 @@ function removeFile(index) {
 }
 
 // Get file icon based on MIME type
+// Utility Functions
 function getFileIcon(mimeType) {
+    // Check if mimeType is null, undefined, or not a string before using string methods
+    if (typeof mimeType !== 'string' || !mimeType) {
+        return '📎'; // Default icon if type is missing or invalid
+    }
+
+    // Now it's safe to use string methods
     if (mimeType.startsWith('image/')) return '🖼️';
     if (mimeType === 'application/pdf') return '📄';
-    if (mimeType.includes('word')) return '📝';
-    if (mimeType.includes('text')) return '📃';
-    return '📎';
+    if (mimeType.includes('word')) return '📝'; // Handles .doc, .docx
+    if (mimeType.startsWith('text/')) return '📃'; // Handles .txt, .csv etc.
+    // Add more specific checks if needed, e.g., spreadsheets
+    // if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return '📊';
+
+    return '📎'; // Default icon for any other type
 }
 
 // Format file size
@@ -601,23 +620,38 @@ async function uploadFiles(useMock = false) {
 }
 
 // Fetch and display medical files
+// Inside fetchMedicalFiles in medical.html
+
 async function fetchMedicalFiles(animalId, useMock = false) {
     if (!animalId) return;
 
     try {
-        let files;
+        let filesArray; // Use a different variable name to avoid confusion
         if (useMock) {
-            files = getMockMedicalFiles(animalId);
+            filesArray = getMockMedicalFiles(animalId);
         } else {
             const res = await fetch(`/api/animals/${animalId}/medical/files`);
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-            files = await res.json();
+
+            // --- CORRECTED PART ---
+            const responseData = await res.json(); // Get the full object { files: [...] }
+            if (responseData && Array.isArray(responseData.files)) {
+                filesArray = responseData.files; // Extract the array from the 'files' property
+            } else {
+                 console.error("API response for files did not contain a 'files' array:", responseData);
+                 filesArray = []; // Default to an empty array if the structure is wrong
+            }
+            // --- END CORRECTION ---
         }
 
-        displayMedicalFiles(files, useMock);
+        // Pass the extracted array (or mock array) to the display function
+        displayMedicalFiles(filesArray, useMock); // Pass filesArray, which should be an array
+
     } catch (err) {
         console.error('Error fetching medical files:', err);
         showError(`Error fetching files: ${err.message}`);
+         // Defensive: Call displayMedicalFiles with an empty array if fetch fails badly
+         displayMedicalFiles([], useMock);
     }
 }
 
@@ -696,6 +730,7 @@ async function downloadFile(fileId, filename, useMock = false) {
 }
 
 // Populate exam and result selects for linking files
+// Populate exam and result selects for linking files
 async function populateExamAndResultSelects() {
     if (!selectedAnimalId) return;
 
@@ -703,6 +738,10 @@ async function populateExamAndResultSelects() {
         let data;
         if (isMockMode()) {
             data = getMockMedicalRecords(selectedAnimalId);
+             // Ensure mock data also uses 'diagnostics' for consistency if needed
+            if (data.results && !data.diagnostics) {
+                data.diagnostics = data.results;
+            }
         } else {
             const res = await fetch(`/api/animals/${selectedAnimalId}/medical`);
             if (!res.ok) throw new Error(`Server responded with ${res.status}`);
@@ -712,25 +751,32 @@ async function populateExamAndResultSelects() {
         // Populate exam select
         const examSelect = document.getElementById('examLinkSelect');
         examSelect.innerHTML = '<option value="">Select an exam...</option>';
-        data.exams.forEach(exam => {
+        // Add safeguard for exams array
+        (data.exams || []).forEach(exam => {
             const option = document.createElement('option');
             option.value = exam.exam_id;
-            option.textContent = `${formatDateTime(exam.exam_date)} - ${exam.veterinarian || 'No vet'}`;
+             // Use unique_record_id if available, otherwise exam_id
+            option.textContent = `${exam.unique_record_id || `Exam ${exam.exam_id}`} - ${formatDateTime(exam.exam_date)}`;
             examSelect.appendChild(option);
         });
 
-        // Populate result select
+        // Populate result (diagnostics) select - CORRECTED
         const resultSelect = document.getElementById('resultLinkSelect');
         resultSelect.innerHTML = '<option value="">Select a result...</option>';
-        data.results.forEach(result => {
+        // Use 'data.diagnostics' and add safeguard
+        (data.diagnostics || []).forEach(result => {
             const option = document.createElement('option');
-            option.value = result.result_id;
-            option.textContent = `${result.test_name} - ${formatDateTime(result.test_date)}`;
+            option.value = result.result_id; // Ensure result_id is correct property name
+            // Use unique_record_id if available, otherwise result_id
+            option.textContent = `${result.unique_record_id || `Result ${result.result_id}`} - ${result.test_name}`;
             resultSelect.appendChild(option);
         });
 
     } catch (err) {
         console.error('Error populating selects:', err);
+         // Optionally clear selects on error
+        document.getElementById('examLinkSelect').innerHTML = '<option value="">Error loading exams</option>';
+        document.getElementById('resultLinkSelect').innerHTML = '<option value="">Error loading results</option>';
     }
 }
 
